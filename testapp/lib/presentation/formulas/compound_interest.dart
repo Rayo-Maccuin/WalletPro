@@ -1,0 +1,1255 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'dart:math';
+
+class CompoundInterestScreen extends StatefulWidget {
+  const CompoundInterestScreen({super.key});
+
+  @override
+  State<CompoundInterestScreen> createState() => _CompoundInterestScreenState();
+}
+
+class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
+  final _principalController = TextEditingController();
+  final _rateController = TextEditingController();
+
+  // Controladores para cada unidad de tiempo
+  final _yearsController = TextEditingController();
+  final _monthsController = TextEditingController();
+  final _daysController = TextEditingController();
+
+  double _interest = 0.0;
+  double _totalAmount = 0.0;
+  bool _hasCalculated = false;
+
+  // Controlador para el ScrollView
+  final ScrollController _scrollController = ScrollController();
+
+  // Modo de tiempo seleccionado (simple o avanzado)
+  bool _advancedTimeMode = false;
+
+  // Opciones para unidades de tiempo en modo simple
+  final List<Map<String, dynamic>> _timeUnits = [
+    {'label': 'Años', 'value': 'years', 'factor': 1.0},
+    {'label': 'Semestres', 'value': 'semesters', 'factor': 0.5},
+    {'label': 'Trimestres', 'value': 'quarters', 'factor': 0.25},
+    {'label': 'Meses', 'value': 'months', 'factor': 1 / 12},
+    {'label': 'Días', 'value': 'days', 'factor': 1 / 365},
+  ];
+
+  // Unidad de tiempo seleccionada para modo simple (por defecto: años)
+  Map<String, dynamic> _selectedTimeUnit = {
+    'label': 'Años',
+    'value': 'years',
+    'factor': 1.0,
+  };
+
+  // Controlador para tiempo en modo simple
+  final _simpleTimeController = TextEditingController();
+
+  // Opciones para frecuencia de capitalización
+  final List<Map<String, dynamic>> _compoundingFrequencies = [
+    {'label': 'Anual', 'value': 'annual', 'periods': 1},
+    {'label': 'Semestral', 'value': 'semiannual', 'periods': 2},
+    {'label': 'Trimestral', 'value': 'quarterly', 'periods': 4},
+    {'label': 'Mensual', 'value': 'monthly', 'periods': 12},
+    {'label': 'Diaria', 'value': 'daily', 'periods': 365},
+  ];
+
+  // Frecuencia de capitalización seleccionada (por defecto: anual)
+  Map<String, dynamic> _selectedFrequency = {
+    'label': 'Anual',
+    'value': 'annual',
+    'periods': 1,
+  };
+
+  @override
+  void dispose() {
+    _principalController.dispose();
+    _rateController.dispose();
+    _simpleTimeController.dispose();
+    _yearsController.dispose();
+    _monthsController.dispose();
+    _daysController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  // Calcular el tiempo total en años
+  double _calculateTimeInYears() {
+    if (_advancedTimeMode) {
+      double years =
+          _yearsController.text.isEmpty
+              ? 0
+              : double.parse(_yearsController.text.replaceAll(',', '.'));
+      double months =
+          _monthsController.text.isEmpty
+              ? 0
+              : double.parse(_monthsController.text.replaceAll(',', '.'));
+      double days =
+          _daysController.text.isEmpty
+              ? 0
+              : double.parse(_daysController.text.replaceAll(',', '.'));
+
+      return years + (months / 12) + (days / 365);
+    } else {
+      if (_simpleTimeController.text.isEmpty) return 0;
+      double timeValue = double.parse(
+        _simpleTimeController.text.replaceAll(',', '.'),
+      );
+      return timeValue * _selectedTimeUnit['factor'];
+    }
+  }
+
+  void _calculateInterest() {
+    // Ocultar el teclado
+    FocusScope.of(context).unfocus();
+
+    // Validar que los campos principales tengan valores
+    if (_principalController.text.isEmpty || _rateController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Por favor completa los campos de capital y tasa de interés',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Validar que haya al menos un valor de tiempo
+    if (_advancedTimeMode) {
+      if (_yearsController.text.isEmpty &&
+          _monthsController.text.isEmpty &&
+          _daysController.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Por favor ingresa al menos un valor de tiempo'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+    } else {
+      if (_simpleTimeController.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Por favor ingresa el valor de tiempo'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+    }
+
+    // Convertir valores a números
+    final principal = double.parse(
+      _principalController.text.replaceAll(',', '.'),
+    );
+    final rate =
+        double.parse(_rateController.text.replaceAll(',', '.')) /
+        100; // Convertir a decimal
+
+    // Obtener tiempo en años
+    final timeInYears = _calculateTimeInYears();
+
+    // Obtener número de períodos de capitalización
+    final periodsPerYear = _selectedFrequency['periods'];
+    final totalPeriods = timeInYears * periodsPerYear;
+
+    // Calcular interés compuesto
+    final ratePerPeriod = rate / periodsPerYear;
+    final totalAmount = principal * pow(1 + ratePerPeriod, totalPeriods);
+    final interest = totalAmount - principal;
+
+    setState(() {
+      _interest = interest;
+      _totalAmount = totalAmount;
+      _hasCalculated = true;
+    });
+
+    // Desplazar hacia abajo para mostrar los resultados
+    Future.delayed(Duration(milliseconds: 100), () {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  // Limpiar todos los campos
+  void _clearFields() {
+    setState(() {
+      _principalController.clear();
+      _rateController.clear();
+      _simpleTimeController.clear();
+      _yearsController.clear();
+      _monthsController.clear();
+      _daysController.clear();
+      _interest = 0.0;
+      _totalAmount = 0.0;
+      _hasCalculated = false;
+    });
+
+    // Mostrar mensaje de confirmación
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Todos los campos han sido limpiados'),
+        backgroundColor: const Color(0xFF293431),
+      ),
+    );
+  }
+
+  // Generar descripción del tiempo para mostrar en resultados
+  String _getTimeDescription() {
+    if (_advancedTimeMode) {
+      List<String> parts = [];
+
+      if (_yearsController.text.isNotEmpty &&
+          double.parse(_yearsController.text.replaceAll(',', '.')) > 0) {
+        double years = double.parse(_yearsController.text.replaceAll(',', '.'));
+        parts.add(
+          '${years.toStringAsFixed(years.truncateToDouble() == years ? 0 : 2)} año${years == 1 ? '' : 's'}',
+        );
+      }
+
+      if (_monthsController.text.isNotEmpty &&
+          double.parse(_monthsController.text.replaceAll(',', '.')) > 0) {
+        double months = double.parse(
+          _monthsController.text.replaceAll(',', '.'),
+        );
+        parts.add(
+          '${months.toStringAsFixed(months.truncateToDouble() == months ? 0 : 2)} mes${months == 1 ? '' : 'es'}',
+        );
+      }
+
+      if (_daysController.text.isNotEmpty &&
+          double.parse(_daysController.text.replaceAll(',', '.')) > 0) {
+        double days = double.parse(_daysController.text.replaceAll(',', '.'));
+        parts.add(
+          '${days.toStringAsFixed(days.truncateToDouble() == days ? 0 : 2)} día${days == 1 ? '' : 's'}',
+        );
+      }
+
+      return parts.join(', ');
+    } else {
+      return '${_simpleTimeController.text.replaceAll(',', '.')} ${_selectedTimeUnit['label'].toLowerCase()}';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[100],
+      appBar: AppBar(
+        title: Text(
+          'Interés Compuesto',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: const Color(0xFF293431),
+        elevation: 0,
+        iconTheme: IconThemeData(color: Colors.white),
+      ),
+      body: SingleChildScrollView(
+        controller: _scrollController,
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Título de la app
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(15),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(15),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.calculate_rounded,
+                    color: const Color(0xFF05CEA8),
+                    size: 32,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'WalletPro',
+                    style: TextStyle(
+                      color: const Color(0xFF293431),
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 25),
+
+            // Tarjeta de información
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [const Color(0xFF293431), const Color(0xFF45AA96)],
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '¿Qué es el Interés Compuesto?',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  Text(
+                    'El interés compuesto es aquel que se calcula sobre el capital inicial más los intereses acumulados en períodos anteriores. A diferencia del interés simple, el interés compuesto genera "interés sobre interés", lo que resulta en un crecimiento exponencial del capital a lo largo del tiempo.',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 25),
+
+            // Tarjeta de fórmula
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Fórmula',
+                    style: TextStyle(
+                      color: const Color(0xFF151616),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(15),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF05CEA8).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: const Color(0xFF05CEA8).withOpacity(0.3),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          'A = P(1 + r/n)^(nt)',
+                          style: TextStyle(
+                            color: const Color(0xFF293431),
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'monospace',
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 15),
+                        Row(
+                          children: [
+                            _buildFormulaItem('A', 'Monto final'),
+                            _buildFormulaItem('P', 'Capital inicial'),
+                            _buildFormulaItem('r', 'Tasa de interés anual'),
+                            _buildFormulaItem('n', 'Períodos por año'),
+                            _buildFormulaItem('t', 'Tiempo en años'),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  Text(
+                    'El interés generado será: A - P',
+                    style: TextStyle(
+                      color: const Color(0xFF151616),
+                      fontSize: 16,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 25),
+
+            // Tarjeta de calculadora
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Calculadora',
+                        style: TextStyle(
+                          color: const Color(0xFF151616),
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: _clearFields,
+                        icon: Icon(
+                          Icons.cleaning_services_rounded,
+                          color: const Color(0xFF45AA96),
+                          size: 18,
+                        ),
+                        label: Text(
+                          'Limpiar',
+                          style: TextStyle(
+                            color: const Color(0xFF45AA96),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          backgroundColor: const Color(
+                            0xFF45AA96,
+                          ).withOpacity(0.1),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Campo de capital inicial
+                  _buildInputField(
+                    controller: _principalController,
+                    label: 'Capital inicial (P)',
+                    hint: 'Ej: 1000000',
+                    prefixIcon: Icons.attach_money,
+                    keyboardType: TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+
+                  // Campo de tasa de interés
+                  _buildInputField(
+                    controller: _rateController,
+                    label: 'Tasa de interés anual (r) %',
+                    hint: 'Ej: 5',
+                    prefixIcon: Icons.percent,
+                    keyboardType: TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+
+                  // Frecuencia de capitalización
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Frecuencia de capitalización (n)',
+                        style: TextStyle(
+                          color: const Color(0xFF293431),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 15),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.grey[300]!),
+                          color: Colors.grey[50],
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _selectedFrequency['value'],
+                            icon: Icon(
+                              Icons.arrow_drop_down,
+                              color: const Color(0xFF45AA96),
+                            ),
+                            isExpanded: true,
+                            borderRadius: BorderRadius.circular(10),
+                            items:
+                                _compoundingFrequencies.map((frequency) {
+                                  return DropdownMenuItem<String>(
+                                    value: frequency['value'],
+                                    child: Text(
+                                      frequency['label'],
+                                      style: TextStyle(
+                                        color: const Color(0xFF151616),
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                            onChanged: (String? newValue) {
+                              setState(() {
+                                _selectedFrequency = _compoundingFrequencies
+                                    .firstWhere(
+                                      (frequency) =>
+                                          frequency['value'] == newValue,
+                                    );
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 15),
+
+                  // Selector de modo de tiempo
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Tiempo (t)',
+                        style: TextStyle(
+                          color: const Color(0xFF293431),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          Text(
+                            'Modo avanzado',
+                            style: TextStyle(
+                              color: Colors.grey[700],
+                              fontSize: 14,
+                            ),
+                          ),
+                          Switch(
+                            value: _advancedTimeMode,
+                            onChanged: (value) {
+                              setState(() {
+                                _advancedTimeMode = value;
+                              });
+                            },
+                            activeColor: const Color(0xFF05CEA8),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Modo de tiempo simple
+                  if (!_advancedTimeMode) ...[
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Campo de entrada para el valor del tiempo
+                        Expanded(
+                          flex: 3,
+                          child: TextField(
+                            controller: _simpleTimeController,
+                            keyboardType: TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Ej: 2',
+                              hintStyle: TextStyle(color: Colors.grey[400]),
+                              prefixIcon: Icon(
+                                Icons.access_time,
+                                color: const Color(0xFF45AA96),
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(
+                                  color: const Color(0xFF05CEA8),
+                                  width: 2,
+                                ),
+                              ),
+                              filled: true,
+                              fillColor: Colors.grey[50],
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 15,
+                                vertical: 15,
+                              ),
+                            ),
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: const Color(0xFF151616),
+                            ),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'[0-9.,]'),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        // Selector de unidad de tiempo
+                        Expanded(
+                          flex: 2,
+                          child: Container(
+                            height: 56, // Misma altura que el TextField
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: Colors.grey[300]!),
+                              color: Colors.grey[50],
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: _selectedTimeUnit['value'],
+                                icon: Icon(
+                                  Icons.arrow_drop_down,
+                                  color: const Color(0xFF45AA96),
+                                ),
+                                isExpanded: true,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 15,
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                                items:
+                                    _timeUnits.map((unit) {
+                                      return DropdownMenuItem<String>(
+                                        value: unit['value'],
+                                        child: Text(
+                                          unit['label'],
+                                          style: TextStyle(
+                                            color: const Color(0xFF151616),
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                onChanged: (String? newValue) {
+                                  setState(() {
+                                    _selectedTimeUnit = _timeUnits.firstWhere(
+                                      (unit) => unit['value'] == newValue,
+                                    );
+                                  });
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+
+                  // Modo de tiempo avanzado
+                  if (_advancedTimeMode) ...[
+                    Container(
+                      padding: const EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF05CEA8).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: const Color(0xFF05CEA8).withOpacity(0.3),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          // Años
+                          Row(
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: Text(
+                                  'Años:',
+                                  style: TextStyle(
+                                    color: const Color(0xFF293431),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 7,
+                                child: TextField(
+                                  controller: _yearsController,
+                                  keyboardType: TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText: 'Ej: 2',
+                                    hintStyle: TextStyle(
+                                      color: Colors.grey[400],
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: Colors.grey[300]!,
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: Colors.grey[300]!,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: const Color(0xFF05CEA8),
+                                        width: 2,
+                                      ),
+                                    ),
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 15,
+                                      vertical: 10,
+                                    ),
+                                  ),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: const Color(0xFF151616),
+                                  ),
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.allow(
+                                      RegExp(r'[0-9.,]'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+
+                          // Meses
+                          Row(
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: Text(
+                                  'Meses:',
+                                  style: TextStyle(
+                                    color: const Color(0xFF293431),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 7,
+                                child: TextField(
+                                  controller: _monthsController,
+                                  keyboardType: TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText: 'Ej: 6',
+                                    hintStyle: TextStyle(
+                                      color: Colors.grey[400],
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: Colors.grey[300]!,
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: Colors.grey[300]!,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: const Color(0xFF05CEA8),
+                                        width: 2,
+                                      ),
+                                    ),
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 15,
+                                      vertical: 10,
+                                    ),
+                                  ),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: const Color(0xFF151616),
+                                  ),
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.allow(
+                                      RegExp(r'[0-9.,]'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+
+                          // Días
+                          Row(
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: Text(
+                                  'Días:',
+                                  style: TextStyle(
+                                    color: const Color(0xFF293431),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 7,
+                                child: TextField(
+                                  controller: _daysController,
+                                  keyboardType: TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText: 'Ej: 15',
+                                    hintStyle: TextStyle(
+                                      color: Colors.grey[400],
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: Colors.grey[300]!,
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: Colors.grey[300]!,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: const Color(0xFF05CEA8),
+                                        width: 2,
+                                      ),
+                                    ),
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 15,
+                                      vertical: 10,
+                                    ),
+                                  ),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: const Color(0xFF151616),
+                                  ),
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.allow(
+                                      RegExp(r'[0-9.,]'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+
+                          // Nota informativa
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                color: const Color(0xFF45AA96),
+                                size: 16,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Puedes combinar años, meses y días para un cálculo más preciso.',
+                                  style: TextStyle(
+                                    color: Colors.grey[700],
+                                    fontSize: 12,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 25),
+
+                  // Botón de calcular
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _calculateInterest,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF05CEA8),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Text(
+                        'Calcular',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Resultados
+            if (_hasCalculated) ...[
+              const SizedBox(height: 25),
+
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Resultados',
+                      style: TextStyle(
+                        color: const Color(0xFF151616),
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Interés generado
+                    _buildResultItem(
+                      label: 'Interés generado:',
+                      value: '\$${_formatNumber(_interest)}',
+                      icon: Icons.trending_up,
+                      color: const Color(0xFF05CEA8),
+                    ),
+                    const SizedBox(height: 15),
+
+                    // Monto total
+                    _buildResultItem(
+                      label: 'Monto total a recibir:',
+                      value: '\$${_formatNumber(_totalAmount)}',
+                      icon: Icons.account_balance_wallet,
+                      color: const Color(0xFF293431),
+                    ),
+
+                    const SizedBox(height: 15),
+
+                    // Detalles del cálculo
+                    Container(
+                      padding: const EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF05CEA8).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: const Color(0xFF05CEA8).withOpacity(0.3),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Detalles del cálculo:',
+                            style: TextStyle(
+                              color: const Color(0xFF293431),
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Capital inicial: \$${_formatNumber(double.parse(_principalController.text.replaceAll(',', '.')))}',
+                            style: TextStyle(
+                              color: const Color(0xFF293431),
+                              fontSize: 14,
+                            ),
+                          ),
+                          Text(
+                            'Tasa de interés anual: ${_rateController.text.replaceAll(',', '.')}%',
+                            style: TextStyle(
+                              color: const Color(0xFF293431),
+                              fontSize: 14,
+                            ),
+                          ),
+                          Text(
+                            'Frecuencia de capitalización: ${_selectedFrequency['label']} (${_selectedFrequency['periods']} período(s) por año)',
+                            style: TextStyle(
+                              color: const Color(0xFF293431),
+                              fontSize: 14,
+                            ),
+                          ),
+                          Text(
+                            'Tiempo: ${_getTimeDescription()}',
+                            style: TextStyle(
+                              color: const Color(0xFF293431),
+                              fontSize: 14,
+                            ),
+                          ),
+                          Text(
+                            'Tiempo en años (para el cálculo): ${_calculateTimeInYears().toStringAsFixed(4)}',
+                            style: TextStyle(
+                              color: const Color(0xFF293431),
+                              fontSize: 14,
+                            ),
+                          ),
+                          Text(
+                            'Número total de períodos: ${(_calculateTimeInYears() * _selectedFrequency['periods']).toStringAsFixed(2)}',
+                            style: TextStyle(
+                              color: const Color(0xFF293431),
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Nota explicativa
+                    Container(
+                      padding: const EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline, color: Colors.grey[700]),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'El interés compuesto genera "interés sobre interés", lo que resulta en un crecimiento exponencial del capital a lo largo del tiempo.',
+                              style: TextStyle(
+                                color: Colors.grey[700],
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Widget para los elementos de la fórmula
+  Widget _buildFormulaItem(String symbol, String description) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            symbol,
+            style: TextStyle(
+              color: const Color(0xFF05CEA8),
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            description,
+            style: TextStyle(color: Colors.grey[700], fontSize: 12),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Widget para los campos de entrada
+  Widget _buildInputField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData prefixIcon,
+    required TextInputType keyboardType,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: const Color(0xFF293431),
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(color: Colors.grey[400]),
+            prefixIcon: Icon(prefixIcon, color: const Color(0xFF45AA96)),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: const Color(0xFF05CEA8), width: 2),
+            ),
+            filled: true,
+            fillColor: Colors.grey[50],
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 15,
+              vertical: 15,
+            ),
+          ),
+          style: TextStyle(fontSize: 16, color: const Color(0xFF151616)),
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // Widget para los elementos de resultado
+  Widget _buildResultItem({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: color, size: 24),
+        ),
+        const SizedBox(width: 15),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: TextStyle(color: Colors.grey[700], fontSize: 14),
+            ),
+            Text(
+              value,
+              style: TextStyle(
+                color: const Color(0xFF151616),
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // Formatear números con separadores de miles
+  String _formatNumber(double number) {
+    return number
+        .toStringAsFixed(2)
+        .replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        );
+  }
+}
