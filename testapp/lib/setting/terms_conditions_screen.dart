@@ -155,7 +155,7 @@ class TermsConditionsScreen extends StatelessWidget {
                       _buildParagraph(
                         'Correo electrónico: soporte@WalletPro.com',
                       ),
-                      _buildParagraph('Teléfono: +57 3133567897'),
+                      _buildParagraph('Teléfono: +57 3133567891'),
                     ],
                   ),
                 ),

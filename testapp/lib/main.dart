@@ -613,7 +613,6 @@ class CreditCardPainter extends CustomPainter {
           Paint()
             ..color = const Color(0xFF45AA96)
             ..style = PaintingStyle.fill;
-
       canvas.drawRRect(
         RRect.fromRectAndRadius(
           Rect.fromLTWH(

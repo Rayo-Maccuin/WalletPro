@@ -15,7 +15,6 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
   final _paymentController = TextEditingController();
   final _rateController = TextEditingController();
   final _periodsController = TextEditingController();
-  final _deferredPeriodsController = TextEditingController();
 
   // Resultados
   double _calculatedValue = 0.0;
@@ -29,7 +28,7 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
       'payment'; // 'payment', 'presentValue', 'futureValue', 'rate', 'periods'
 
   // Tipo de anualidad
-  String _annuityType = 'ordinary'; // 'ordinary', 'due', 'deferred'
+  String _annuityType = 'ordinary'; // 'ordinary', 'due'
 
   // Frecuencia de pago
   final List<Map<String, dynamic>> _paymentFrequencies = [
@@ -53,7 +52,6 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
     _paymentController.dispose();
     _rateController.dispose();
     _periodsController.dispose();
-    _deferredPeriodsController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -90,6 +88,19 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
     }
   }
 
+  // Obtener la tasa efectiva por período
+  double _getEffectiveRatePerPeriod() {
+    if (_rateController.text.isEmpty) return 0;
+
+    double inputRate =
+        double.parse(_rateController.text.replaceAll(',', '.')) /
+        100; // Convertir a decimal
+
+    // Convertir tasa anual a tasa por período
+    int periodsPerYear = _selectedFrequency['periods'];
+    return inputRate / periodsPerYear;
+  }
+
   void _calculatePayment() {
     // Validar que los campos necesarios tengan valores
     if (_rateController.text.isEmpty || _periodsController.text.isEmpty) {
@@ -103,26 +114,11 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
       return;
     }
 
-    // Validar períodos diferidos para anualidad diferida
-    if (_annuityType == 'deferred' && _deferredPeriodsController.text.isEmpty) {
-      _showValidationError('períodos diferidos');
-      return;
-    }
+    // Obtener tasa efectiva por período
+    final ratePerPeriod = _getEffectiveRatePerPeriod();
 
     // Convertir valores a números
-    final rate =
-        double.parse(_rateController.text.replaceAll(',', '.')) /
-        100; // Convertir a decimal
-    final ratePerPeriod = rate / _selectedFrequency['periods'];
     final periods = double.parse(_periodsController.text.replaceAll(',', '.'));
-
-    // Períodos diferidos (solo para anualidad diferida)
-    int deferredPeriods = 0;
-    if (_annuityType == 'deferred') {
-      deferredPeriods = int.parse(
-        _deferredPeriodsController.text.replaceAll(',', '.'),
-      );
-    }
 
     double payment = 0.0;
 
@@ -135,28 +131,17 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
       );
 
       if (_annuityType == 'ordinary') {
-        // Anualidad ordinaria: PMT = PV * [r(1+r)^n] / [(1+r)^n - 1]
+        // Anualidad ordinaria: A = VA * [i / (1 - (1+i)^-n)]
         payment =
             presentValue *
-            (ratePerPeriod * pow(1 + ratePerPeriod, periods)) /
-            (pow(1 + ratePerPeriod, periods) - 1);
+            ratePerPeriod /
+            (1 - pow(1 + ratePerPeriod, -periods));
       } else if (_annuityType == 'due') {
-        // Anualidad anticipada: PMT = PV * [r(1+r)^n] / [(1+r)^n - 1] / (1+r)
+        // Anualidad anticipada: A = VA * [i / ((1 - (1+i)^-n) * (1+i))]
         payment =
             presentValue *
-            (ratePerPeriod * pow(1 + ratePerPeriod, periods)) /
-            (pow(1 + ratePerPeriod, periods) - 1) /
-            (1 + ratePerPeriod);
-      } else if (_annuityType == 'deferred') {
-        // Anualidad diferida: Ajustar el valor presente considerando el período de diferimiento
-        double adjustedPV =
-            presentValue * pow(1 + ratePerPeriod, deferredPeriods);
-
-        // Luego calcular como una anualidad ordinaria
-        payment =
-            adjustedPV *
-            (ratePerPeriod * pow(1 + ratePerPeriod, periods)) /
-            (pow(1 + ratePerPeriod, periods) - 1);
+            ratePerPeriod /
+            ((1 - pow(1 + ratePerPeriod, -periods)) * (1 + ratePerPeriod));
       }
     } else if (_futureValueController.text.isNotEmpty &&
         _presentValueController.text.isEmpty) {
@@ -166,24 +151,15 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
       );
 
       if (_annuityType == 'ordinary') {
-        // Anualidad ordinaria: PMT = FV * [r] / [(1+r)^n - 1]
+        // Anualidad ordinaria: A = VF * [i / ((1+i)^n - 1)]
         payment =
             futureValue * ratePerPeriod / (pow(1 + ratePerPeriod, periods) - 1);
       } else if (_annuityType == 'due') {
-        // Anualidad anticipada: PMT = FV * [r] / [(1+r)^n - 1] / (1+r)
+        // Anualidad anticipada: A = VF * [i / (((1+i)^n - 1) * (1+i))]
         payment =
             futureValue *
             ratePerPeriod /
-            (pow(1 + ratePerPeriod, periods) - 1) /
-            (1 + ratePerPeriod);
-      } else if (_annuityType == 'deferred') {
-        // Anualidad diferida: Ajustar el valor futuro considerando el período de diferimiento
-        double adjustedFV =
-            futureValue / pow(1 + ratePerPeriod, deferredPeriods);
-
-        // Luego calcular como una anualidad ordinaria
-        payment =
-            adjustedFV * ratePerPeriod / (pow(1 + ratePerPeriod, periods) - 1);
+            ((pow(1 + ratePerPeriod, periods) - 1) * (1 + ratePerPeriod));
       }
     } else if (_futureValueController.text.isNotEmpty &&
         _presentValueController.text.isNotEmpty) {
@@ -204,18 +180,9 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
         // Anualidad anticipada
         payment =
             (futureValue - presentValue * pow(1 + ratePerPeriod, periods)) /
-            ((pow(1 + ratePerPeriod, periods) - 1) /
-                ratePerPeriod *
-                (1 + ratePerPeriod));
-      } else if (_annuityType == 'deferred') {
-        // Anualidad diferida: Ajustar considerando el período de diferimiento
-        double totalPeriods = periods + deferredPeriods;
-        payment =
-            (futureValue -
-                presentValue * pow(1 + ratePerPeriod, totalPeriods)) /
-            ((pow(1 + ratePerPeriod, periods) - 1) /
-                ratePerPeriod *
-                pow(1 + ratePerPeriod, deferredPeriods));
+            ((pow(1 + ratePerPeriod, periods) - 1) *
+                (1 + ratePerPeriod) /
+                ratePerPeriod);
       }
     }
 
@@ -239,49 +206,27 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
       return;
     }
 
-    // Validar períodos diferidos para anualidad diferida
-    if (_annuityType == 'deferred' && _deferredPeriodsController.text.isEmpty) {
-      _showValidationError('períodos diferidos');
-      return;
-    }
+    // Obtener tasa efectiva por período
+    final ratePerPeriod = _getEffectiveRatePerPeriod();
 
     // Convertir valores a números
-    final rate =
-        double.parse(_rateController.text.replaceAll(',', '.')) /
-        100; // Convertir a decimal
-    final ratePerPeriod = rate / _selectedFrequency['periods'];
     final periods = double.parse(_periodsController.text.replaceAll(',', '.'));
     final payment = double.parse(_paymentController.text.replaceAll(',', '.'));
 
-    // Períodos diferidos (solo para anualidad diferida)
-    int deferredPeriods = 0;
-    if (_annuityType == 'deferred') {
-      deferredPeriods = int.parse(
-        _deferredPeriodsController.text.replaceAll(',', '.'),
-      );
-    }
-
     double presentValue = 0.0;
 
-    // Calcular el valor presente
+    // Calcular el valor presente usando la fórmula: VA = A * [(1 - (1+i)^-n) / i]
     if (_annuityType == 'ordinary') {
-      // Anualidad ordinaria: PV = PMT * [(1 - (1+r)^-n) / r]
+      // Anualidad ordinaria
       presentValue =
           payment * (1 - pow(1 + ratePerPeriod, -periods)) / ratePerPeriod;
     } else if (_annuityType == 'due') {
-      // Anualidad anticipada: PV = PMT * [(1 - (1+r)^-n) / r] * (1+r)
+      // Anualidad anticipada: VA = A * [(1 - (1+i)^-n) / i] * (1+i)
       presentValue =
           payment *
           (1 - pow(1 + ratePerPeriod, -periods)) /
           ratePerPeriod *
           (1 + ratePerPeriod);
-    } else if (_annuityType == 'deferred') {
-      // Anualidad diferida: PV = PMT * [(1 - (1+r)^-n) / r] / (1+r)^d
-      presentValue =
-          payment *
-          (1 - pow(1 + ratePerPeriod, -periods)) /
-          ratePerPeriod /
-          pow(1 + ratePerPeriod, deferredPeriods);
     }
 
     // Si hay un valor futuro, ajustar el cálculo
@@ -289,16 +234,8 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
       final futureValue = double.parse(
         _futureValueController.text.replaceAll(',', '.'),
       );
-
-      if (_annuityType == 'deferred') {
-        // Para anualidad diferida, ajustar el total de períodos
-        double totalPeriods = periods + deferredPeriods;
-        presentValue =
-            presentValue - futureValue / pow(1 + ratePerPeriod, totalPeriods);
-      } else {
-        presentValue =
-            presentValue - futureValue / pow(1 + ratePerPeriod, periods);
-      }
+      presentValue =
+          presentValue + futureValue / pow(1 + ratePerPeriod, periods);
     }
 
     setState(() {
@@ -321,49 +258,27 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
       return;
     }
 
-    // Validar períodos diferidos para anualidad diferida
-    if (_annuityType == 'deferred' && _deferredPeriodsController.text.isEmpty) {
-      _showValidationError('períodos diferidos');
-      return;
-    }
+    // Obtener tasa efectiva por período
+    final ratePerPeriod = _getEffectiveRatePerPeriod();
 
     // Convertir valores a números
-    final rate =
-        double.parse(_rateController.text.replaceAll(',', '.')) /
-        100; // Convertir a decimal
-    final ratePerPeriod = rate / _selectedFrequency['periods'];
     final periods = double.parse(_periodsController.text.replaceAll(',', '.'));
     final payment = double.parse(_paymentController.text.replaceAll(',', '.'));
 
-    // Períodos diferidos (solo para anualidad diferida)
-    int deferredPeriods = 0;
-    if (_annuityType == 'deferred') {
-      deferredPeriods = int.parse(
-        _deferredPeriodsController.text.replaceAll(',', '.'),
-      );
-    }
-
     double futureValue = 0.0;
 
-    // Calcular el valor futuro
+    // Calcular el valor futuro usando la fórmula: VF = A * [(1+i)^n - 1) / i]
     if (_annuityType == 'ordinary') {
-      // Anualidad ordinaria: FV = PMT * [(1+r)^n - 1) / r]
+      // Anualidad ordinaria
       futureValue =
           payment * (pow(1 + ratePerPeriod, periods) - 1) / ratePerPeriod;
     } else if (_annuityType == 'due') {
-      // Anualidad anticipada: FV = PMT * [(1+r)^n - 1) / r] * (1+r)
+      // Anualidad anticipada: VF = A * [(1+i)^n - 1) / i] * (1+i)
       futureValue =
           payment *
           (pow(1 + ratePerPeriod, periods) - 1) /
           ratePerPeriod *
           (1 + ratePerPeriod);
-    } else if (_annuityType == 'deferred') {
-      // Anualidad diferida: FV = PMT * [(1+r)^n - 1) / r] * (1+r)^d
-      futureValue =
-          payment *
-          (pow(1 + ratePerPeriod, periods) - 1) /
-          ratePerPeriod *
-          pow(1 + ratePerPeriod, deferredPeriods);
     }
 
     // Si hay un valor presente, ajustar el cálculo
@@ -371,16 +286,8 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
       final presentValue = double.parse(
         _presentValueController.text.replaceAll(',', '.'),
       );
-
-      if (_annuityType == 'deferred') {
-        // Para anualidad diferida, ajustar el total de períodos
-        double totalPeriods = periods + deferredPeriods;
-        futureValue =
-            futureValue + presentValue * pow(1 + ratePerPeriod, totalPeriods);
-      } else {
-        futureValue =
-            futureValue + presentValue * pow(1 + ratePerPeriod, periods);
-      }
+      futureValue =
+          futureValue + presentValue * pow(1 + ratePerPeriod, periods);
     }
 
     setState(() {
@@ -405,12 +312,6 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
       return;
     }
 
-    // Validar períodos diferidos para anualidad diferida
-    if (_annuityType == 'deferred' && _deferredPeriodsController.text.isEmpty) {
-      _showValidationError('períodos diferidos');
-      return;
-    }
-
     // Convertir valores a números
     final periods = double.parse(_periodsController.text.replaceAll(',', '.'));
     final payment = double.parse(_paymentController.text.replaceAll(',', '.'));
@@ -429,40 +330,29 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
       );
     }
 
-    // Períodos diferidos (solo para anualidad diferida)
-    int deferredPeriods = 0;
-    if (_annuityType == 'deferred') {
-      deferredPeriods = int.parse(
-        _deferredPeriodsController.text.replaceAll(',', '.'),
-      );
-    }
-
     // Estimación inicial de la tasa
     double rateGuess = 0.1; // 10%
     double tolerance = 0.0001;
     int maxIterations = 100;
 
-    // Ajustar para frecuencia de pago
-    double periodsPerYear = _selectedFrequency['periods'].toDouble();
-
     // Método iterativo para encontrar la tasa
-    double rate = _findRateNumerically(
+    double ratePerPeriod = _findRateNumerically(
       presentValue,
       futureValue,
       payment,
       periods,
-      deferredPeriods,
       rateGuess,
       tolerance,
       maxIterations,
       _annuityType,
     );
 
-    // Convertir a tasa anual
-    rate = rate * periodsPerYear;
+    // En _calculateRate, reemplazar:
+    // Convertir a tasa anual efectiva
+    double annualRate = ratePerPeriod * _selectedFrequency['periods'];
 
     setState(() {
-      _calculatedValue = rate * 100; // Convertir a porcentaje
+      _calculatedValue = annualRate * 100; // Convertir a porcentaje
       _hasCalculated = true;
     });
 
@@ -475,7 +365,6 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
     double futureValue,
     double payment,
     double periods,
-    int deferredPeriods,
     double rateGuess,
     double tolerance,
     int maxIterations,
@@ -545,73 +434,6 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
                           (rate * rate) *
                           (1 + rate));
         }
-      } else if (annuityType == 'deferred') {
-        // Anualidad diferida
-        double totalPeriods = periods + deferredPeriods;
-
-        if (presentValue > 0 && futureValue == 0) {
-          f =
-              presentValue -
-              payment *
-                  (1 - pow(1 + rate, -periods)) /
-                  rate /
-                  pow(1 + rate, deferredPeriods);
-          // La derivada es compleja para anualidades diferidas
-          fPrime =
-              payment *
-              ((periods * pow(1 + rate, -periods - 1)) /
-                      rate /
-                      pow(1 + rate, deferredPeriods) -
-                  (1 - pow(1 + rate, -periods)) /
-                      (rate * rate) /
-                      pow(1 + rate, deferredPeriods) +
-                  deferredPeriods *
-                      (1 - pow(1 + rate, -periods)) /
-                      rate /
-                      pow(1 + rate, deferredPeriods + 1));
-        } else if (futureValue > 0 && presentValue == 0) {
-          f =
-              futureValue -
-              payment *
-                  (pow(1 + rate, periods) - 1) /
-                  rate *
-                  pow(1 + rate, deferredPeriods);
-          // La derivada es compleja para anualidades diferidas
-          fPrime =
-              payment *
-              ((periods * pow(1 + rate, periods - 1)) /
-                      rate *
-                      pow(1 + rate, deferredPeriods) -
-                  (pow(1 + rate, periods) - 1) /
-                      (rate * rate) *
-                      pow(1 + rate, deferredPeriods) +
-                  deferredPeriods *
-                      (pow(1 + rate, periods) - 1) /
-                      rate *
-                      pow(1 + rate, deferredPeriods - 1));
-        } else {
-          f =
-              presentValue * pow(1 + rate, totalPeriods) +
-              payment *
-                  (pow(1 + rate, periods) - 1) /
-                  rate *
-                  pow(1 + rate, deferredPeriods) -
-              futureValue;
-          // La derivada es compleja para anualidades diferidas
-          fPrime =
-              presentValue * totalPeriods * pow(1 + rate, totalPeriods - 1) +
-              payment *
-                  ((periods * pow(1 + rate, periods - 1)) /
-                          rate *
-                          pow(1 + rate, deferredPeriods) -
-                      (pow(1 + rate, periods) - 1) /
-                          (rate * rate) *
-                          pow(1 + rate, deferredPeriods) +
-                      deferredPeriods *
-                          (pow(1 + rate, periods) - 1) /
-                          rate *
-                          pow(1 + rate, deferredPeriods - 1));
-        }
       }
 
       // Evitar división por cero o valores muy pequeños
@@ -654,26 +476,11 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
       return;
     }
 
-    // Validar períodos diferidos para anualidad diferida
-    if (_annuityType == 'deferred' && _deferredPeriodsController.text.isEmpty) {
-      _showValidationError('períodos diferidos');
-      return;
-    }
+    // Obtener tasa efectiva por período
+    final ratePerPeriod = _getEffectiveRatePerPeriod();
 
     // Convertir valores a números
-    final rate =
-        double.parse(_rateController.text.replaceAll(',', '.')) /
-        100; // Convertir a decimal
-    final ratePerPeriod = rate / _selectedFrequency['periods'];
     final payment = double.parse(_paymentController.text.replaceAll(',', '.'));
-
-    // Períodos diferidos (solo para anualidad diferida)
-    int deferredPeriods = 0;
-    if (_annuityType == 'deferred') {
-      deferredPeriods = int.parse(
-        _deferredPeriodsController.text.replaceAll(',', '.'),
-      );
-    }
 
     double periods = 0.0;
 
@@ -686,25 +493,19 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
       );
 
       if (_annuityType == 'ordinary') {
-        // Anualidad ordinaria: n = ln(PMT / (PMT - PV*r)) / ln(1+r)
+        // Anualidad ordinaria: n = -ln(1 - VA*i/A) / ln(1+i)
         periods =
-            log(payment / (payment - presentValue * ratePerPeriod)) /
+            -log(1 - presentValue * ratePerPeriod / payment) /
             log(1 + ratePerPeriod);
       } else if (_annuityType == 'due') {
         // Anualidad anticipada: ajuste para pago al inicio
         periods =
-            log(
-              payment /
-                  (payment -
-                      presentValue * ratePerPeriod * (1 + ratePerPeriod)),
+            -log(
+              1 -
+                  presentValue *
+                      ratePerPeriod /
+                      (payment * (1 + ratePerPeriod)),
             ) /
-            log(1 + ratePerPeriod);
-      } else if (_annuityType == 'deferred') {
-        // Anualidad diferida: ajuste para el período de diferimiento
-        double adjustedPV =
-            presentValue * pow(1 + ratePerPeriod, deferredPeriods);
-        periods =
-            log(payment / (payment - adjustedPV * ratePerPeriod)) /
             log(1 + ratePerPeriod);
       }
     } else if (_futureValueController.text.isNotEmpty &&
@@ -715,7 +516,7 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
       );
 
       if (_annuityType == 'ordinary') {
-        // Anualidad ordinaria: n = ln(1 + FV*r/PMT) / ln(1+r)
+        // Anualidad ordinaria: n = ln(1 + VF*i/A) / ln(1+i)
         periods =
             log(1 + futureValue * ratePerPeriod / payment) /
             log(1 + ratePerPeriod);
@@ -725,13 +526,6 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
             log(
               1 + futureValue * ratePerPeriod / (payment * (1 + ratePerPeriod)),
             ) /
-            log(1 + ratePerPeriod);
-      } else if (_annuityType == 'deferred') {
-        // Anualidad diferida: ajuste para el período de diferimiento
-        double adjustedFV =
-            futureValue / pow(1 + ratePerPeriod, deferredPeriods);
-        periods =
-            log(1 + adjustedFV * ratePerPeriod / payment) /
             log(1 + ratePerPeriod);
       }
     } else if (_futureValueController.text.isNotEmpty &&
@@ -757,7 +551,6 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
         futureValue,
         payment,
         ratePerPeriod,
-        deferredPeriods,
         periodsGuess,
         tolerance,
         maxIterations,
@@ -779,7 +572,6 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
     double futureValue,
     double payment,
     double rate,
-    int deferredPeriods,
     double periodsGuess,
     double tolerance,
     int maxIterations,
@@ -808,23 +600,6 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
         fPrime =
             presentValue * log(1 + rate) * pow(1 + rate, n) +
             payment * log(1 + rate) * pow(1 + rate, n) / rate * (1 + rate);
-      } else if (annuityType == 'deferred') {
-        // Anualidad diferida
-        double totalPeriods = n + deferredPeriods;
-        f =
-            presentValue * pow(1 + rate, totalPeriods) +
-            payment *
-                (pow(1 + rate, n) - 1) /
-                rate *
-                pow(1 + rate, deferredPeriods) -
-            futureValue;
-        fPrime =
-            presentValue * log(1 + rate) * pow(1 + rate, totalPeriods) +
-            payment *
-                log(1 + rate) *
-                pow(1 + rate, n) /
-                rate *
-                pow(1 + rate, deferredPeriods);
       }
 
       // Evitar división por cero o valores muy pequeños
@@ -879,8 +654,6 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
       _paymentController.clear();
       _rateController.clear();
       _periodsController.clear();
-      _deferredPeriodsController
-          .clear(); // Limpiar el campo de períodos diferidos
       _calculatedValue = 0.0;
       _hasCalculated = false;
     });
@@ -898,15 +671,15 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
   String _getResultTitle() {
     switch (_variableToCalculate) {
       case 'payment':
-        return 'Pago periódico:';
+        return 'Anualidad (A):';
       case 'presentValue':
-        return 'Valor presente:';
+        return 'Valor Actual (VA):';
       case 'futureValue':
-        return 'Valor futuro:';
+        return 'Valor Futuro (VF):';
       case 'rate':
-        return 'Tasa de interés anual:';
+        return 'Tasa de interés (i):';
       case 'periods':
-        return 'Número de períodos:';
+        return 'Número de períodos (n):';
       default:
         return '';
     }
@@ -1035,7 +808,7 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
                   ),
                   const SizedBox(height: 15),
                   Text(
-                    'Las anualidades son series de pagos iguales realizados a intervalos regulares de tiempo. Se utilizan para préstamos, inversiones, planes de ahorro y pensiones. Pueden ser ordinarias (pagos al final de cada período), anticipadas (pagos al inicio de cada período) o diferidas (pagos que comienzan después de un período de tiempo).',
+                    'Las anualidades son series de pagos iguales realizados a intervalos regulares de tiempo. Se utilizan para préstamos, inversiones, planes de ahorro y pensiones. Pueden ser ordinarias (pagos al final de cada período) o anticipadas (pagos al inicio de cada período).',
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.9),
                       fontSize: 16,
@@ -1066,7 +839,7 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Fórmulas Principales',
+                    'Fórmula',
                     style: TextStyle(
                       color: const Color(0xFF151616),
                       fontSize: 18,
@@ -1096,7 +869,7 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          'Ordinaria: PV = PMT × [(1 - (1+r)^-n) / r]',
+                          'Valor Futuro: VF = A[(1+i)^n - 1)/i]',
                           style: TextStyle(
                             color: const Color(0xFF293431),
                             fontSize: 16,
@@ -1107,18 +880,7 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          'Anticipada: PV = PMT × [(1 - (1+r)^-n) / r] × (1+r)',
-                          style: TextStyle(
-                            color: const Color(0xFF293431),
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'monospace',
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          'Diferida: PV = PMT × [(1 - (1+r)^-n) / r] / (1+r)^d',
+                          'Valor Actual: VA = A[(1-(1+i)^-n)/i]',
                           style: TextStyle(
                             color: const Color(0xFF293431),
                             fontSize: 16,
@@ -1130,12 +892,11 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
                         const SizedBox(height: 15),
                         Row(
                           children: [
-                            _buildFormulaItem('PV', 'Valor presente'),
-                            _buildFormulaItem('FV', 'Valor futuro'),
-                            _buildFormulaItem('PMT', 'Pago periódico'),
-                            _buildFormulaItem('r', 'Tasa por período'),
+                            _buildFormulaItem('VA', 'Valor actual'),
+                            _buildFormulaItem('VF', 'Valor futuro'),
+                            _buildFormulaItem('A', 'Anualidad'),
+                            _buildFormulaItem('i', 'Tasa por período'),
                             _buildFormulaItem('n', 'Número de períodos'),
-                            _buildFormulaItem('d', 'Períodos diferidos'),
                           ],
                         ),
                       ],
@@ -1228,7 +989,7 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
                         child: Column(
                           children: [
                             RadioListTile<String>(
-                              title: Text('Pago periódico (PMT)'),
+                              title: Text('Anualidad (A)'),
                               value: 'payment',
                               groupValue: _variableToCalculate,
                               onChanged: (value) {
@@ -1240,7 +1001,7 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
                               dense: true,
                             ),
                             RadioListTile<String>(
-                              title: Text('Valor presente (PV)'),
+                              title: Text('Valor Actual (VA)'),
                               value: 'presentValue',
                               groupValue: _variableToCalculate,
                               onChanged: (value) {
@@ -1252,7 +1013,7 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
                               dense: true,
                             ),
                             RadioListTile<String>(
-                              title: Text('Valor futuro (FV)'),
+                              title: Text('Valor Futuro (VF)'),
                               value: 'futureValue',
                               groupValue: _variableToCalculate,
                               onChanged: (value) {
@@ -1264,7 +1025,7 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
                               dense: true,
                             ),
                             RadioListTile<String>(
-                              title: Text('Tasa de interés (r)'),
+                              title: Text('Tasa de interés (i)'),
                               value: 'rate',
                               groupValue: _variableToCalculate,
                               onChanged: (value) {
@@ -1346,42 +1107,12 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
                                 horizontal: 8,
                               ),
                             ),
-                            RadioListTile<String>(
-                              title: Text('Diferida'),
-                              subtitle: Text('Pagos después de un período'),
-                              value: 'deferred',
-                              groupValue: _annuityType,
-                              onChanged: (value) {
-                                setState(() {
-                                  _annuityType = value!;
-                                });
-                              },
-                              activeColor: const Color(0xFF05CEA8),
-                              dense: true,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 8,
-                              ),
-                            ),
                           ],
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 20),
-
-                  // Campo de períodos diferidos (solo para anualidad diferida)
-                  if (_annuityType == 'deferred') ...[
-                    _buildInputField(
-                      controller: _deferredPeriodsController,
-                      label: 'Períodos diferidos (d)',
-                      hint: 'Ej: 5',
-                      prefixIcon: Icons.hourglass_empty,
-                      keyboardType: TextInputType.numberWithOptions(
-                        decimal: false,
-                      ),
-                    ),
-                    const SizedBox(height: 15),
-                  ],
 
                   // Frecuencia de pago
                   Column(
@@ -1446,7 +1177,7 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
                   if (_variableToCalculate != 'presentValue') ...[
                     _buildInputField(
                       controller: _presentValueController,
-                      label: 'Valor presente (PV)',
+                      label: 'Valor Actual (VA)',
                       hint: 'Ej: 1000000',
                       prefixIcon: Icons.account_balance_wallet,
                       keyboardType: TextInputType.numberWithOptions(
@@ -1460,7 +1191,7 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
                   if (_variableToCalculate != 'futureValue') ...[
                     _buildInputField(
                       controller: _futureValueController,
-                      label: 'Valor futuro (FV)',
+                      label: 'Valor Futuro (VF)',
                       hint: 'Ej: 1500000',
                       prefixIcon: Icons.trending_up,
                       keyboardType: TextInputType.numberWithOptions(
@@ -1474,7 +1205,7 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
                   if (_variableToCalculate != 'payment') ...[
                     _buildInputField(
                       controller: _paymentController,
-                      label: 'Pago periódico (PMT)',
+                      label: 'Anualidad (A)',
                       hint: 'Ej: 10000',
                       prefixIcon: Icons.payments,
                       keyboardType: TextInputType.numberWithOptions(
@@ -1488,7 +1219,7 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
                   if (_variableToCalculate != 'rate') ...[
                     _buildInputField(
                       controller: _rateController,
-                      label: 'Tasa de interés anual (r) %',
+                      label: 'Tasa de interés (i) %',
                       hint: 'Ej: 5',
                       prefixIcon: Icons.percent,
                       keyboardType: TextInputType.numberWithOptions(
@@ -1604,27 +1335,12 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
                           const SizedBox(height: 10),
 
                           Text(
-                            'Tipo de anualidad: ${_annuityType == 'ordinary'
-                                ? 'Ordinaria (pagos al final)'
-                                : _annuityType == 'due'
-                                ? 'Anticipada (pagos al inicio)'
-                                : 'Diferida (pagos después de un período)'}',
+                            'Tipo de anualidad: ${_annuityType == 'ordinary' ? 'Ordinaria (pagos al final)' : 'Anticipada (pagos al inicio)'}',
                             style: TextStyle(
                               color: const Color(0xFF293431),
                               fontSize: 14,
                             ),
                           ),
-
-                          if (_annuityType == 'deferred' &&
-                              _deferredPeriodsController.text.isNotEmpty) ...[
-                            Text(
-                              'Períodos diferidos: ${_deferredPeriodsController.text}',
-                              style: TextStyle(
-                                color: const Color(0xFF293431),
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
 
                           Text(
                             'Frecuencia de pago: ${_selectedFrequency['label']} (${_selectedFrequency['periods']} período(s) por año)',
@@ -1637,7 +1353,7 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
                           if (_variableToCalculate != 'presentValue' &&
                               _presentValueController.text.isNotEmpty) ...[
                             Text(
-                              'Valor presente: \$${_formatNumber(double.parse(_presentValueController.text.replaceAll(',', '.')))}',
+                              'Valor Actual: \$${_formatNumber(double.parse(_presentValueController.text.replaceAll(',', '.')))}',
                               style: TextStyle(
                                 color: const Color(0xFF293431),
                                 fontSize: 14,
@@ -1648,7 +1364,7 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
                           if (_variableToCalculate != 'futureValue' &&
                               _futureValueController.text.isNotEmpty) ...[
                             Text(
-                              'Valor futuro: \$${_formatNumber(double.parse(_futureValueController.text.replaceAll(',', '.')))}',
+                              'Valor Futuro: \$${_formatNumber(double.parse(_futureValueController.text.replaceAll(',', '.')))}',
                               style: TextStyle(
                                 color: const Color(0xFF293431),
                                 fontSize: 14,
@@ -1659,7 +1375,7 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
                           if (_variableToCalculate != 'payment' &&
                               _paymentController.text.isNotEmpty) ...[
                             Text(
-                              'Pago periódico: \$${_formatNumber(double.parse(_paymentController.text.replaceAll(',', '.')))}',
+                              'Anualidad: \$${_formatNumber(double.parse(_paymentController.text.replaceAll(',', '.')))}',
                               style: TextStyle(
                                 color: const Color(0xFF293431),
                                 fontSize: 14,
@@ -1670,14 +1386,14 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
                           if (_variableToCalculate != 'rate' &&
                               _rateController.text.isNotEmpty) ...[
                             Text(
-                              'Tasa de interés anual: ${_rateController.text.replaceAll(',', '.')}%',
+                              'Tasa de interés: ${_rateController.text.replaceAll(',', '.')}%',
                               style: TextStyle(
                                 color: const Color(0xFF293431),
                                 fontSize: 14,
                               ),
                             ),
                             Text(
-                              'Tasa por período: ${(double.parse(_rateController.text.replaceAll(',', '.')) / _selectedFrequency['periods']).toStringAsFixed(4)}%',
+                              'Tasa efectiva por período: ${(_getEffectiveRatePerPeriod() * 100).toStringAsFixed(4)}%',
                               style: TextStyle(
                                 color: const Color(0xFF293431),
                                 fontSize: 14,
@@ -1721,7 +1437,7 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              'Las anualidades son útiles para calcular préstamos, planes de ahorro, inversiones y pensiones. El tipo de anualidad afecta significativamente los resultados. Las anualidades diferidas son especialmente útiles para planificación de jubilación y seguros.',
+                              'Las anualidades son útiles para calcular préstamos, planes de ahorro, inversiones y pensiones. El tipo de anualidad afecta significativamente los resultados.',
                               style: TextStyle(
                                 color: Colors.grey[700],
                                 fontSize: 14,
