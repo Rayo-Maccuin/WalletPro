@@ -16,21 +16,15 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
   final _rateController = TextEditingController();
   final _periodsController = TextEditingController();
 
-  // Resultados
   double _calculatedValue = 0.0;
   bool _hasCalculated = false;
 
-  // Controlador para el ScrollView
   final ScrollController _scrollController = ScrollController();
 
-  // Variable a calcular
-  String _variableToCalculate =
-      'payment'; // 'payment', 'presentValue', 'futureValue', 'rate', 'periods'
+  String _variableToCalculate = 'payment';
 
-  // Tipo de anualidad
-  String _annuityType = 'ordinary'; // 'ordinary', 'due'
+  String _annuityType = 'ordinary';
 
-  // Frecuencia de pago
   final List<Map<String, dynamic>> _paymentFrequencies = [
     {'label': 'Anual', 'value': 'annual', 'periods': 1},
     {'label': 'Semestral', 'value': 'semiannual', 'periods': 2},
@@ -38,7 +32,6 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
     {'label': 'Mensual', 'value': 'monthly', 'periods': 12},
   ];
 
-  // Frecuencia seleccionada (por defecto: anual)
   Map<String, dynamic> _selectedFrequency = {
     'label': 'Anual',
     'value': 'annual',
@@ -530,10 +523,6 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
       }
     } else if (_futureValueController.text.isNotEmpty &&
         _presentValueController.text.isNotEmpty) {
-      // Caso de valor presente y futuro
-      // Este caso es más complejo y requiere métodos numéricos
-      // Implementamos una aproximación usando el método de Newton-Raphson
-
       final presentValue = double.parse(
         _presentValueController.text.replaceAll(',', '.'),
       );
@@ -1271,7 +1260,6 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
               ),
             ),
 
-            // Resultados
             if (_hasCalculated) ...[
               const SizedBox(height: 25),
 
@@ -1302,7 +1290,6 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Valor calculado
                     _buildResultItem(
                       label: _getResultTitle(),
                       value: _getFormattedResult(),
@@ -1311,7 +1298,6 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Detalles del cálculo
                     Container(
                       padding: const EdgeInsets.all(15),
                       decoration: BoxDecoration(
@@ -1424,7 +1410,6 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
 
                     const SizedBox(height: 20),
 
-                    // Nota explicativa
                     Container(
                       padding: const EdgeInsets.all(15),
                       decoration: BoxDecoration(
@@ -1457,7 +1442,6 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
     );
   }
 
-  // Widget para los elementos de la fórmula
   Widget _buildFormulaItem(String symbol, String description) {
     return Expanded(
       child: Column(
@@ -1481,7 +1465,6 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
     );
   }
 
-  // Widget para los campos de entrada
   Widget _buildInputField({
     required TextEditingController controller,
     required String label,
@@ -1536,7 +1519,6 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
     );
   }
 
-  // Widget para los elementos de resultado
   Widget _buildResultItem({
     required String label,
     required String value,
@@ -1575,7 +1557,6 @@ class _AnnuityScreenState extends State<AnnuityScreen> {
     );
   }
 
-  // Formatear números con separadores de miles
   String _formatNumber(double number) {
     return number
         .toStringAsFixed(2)

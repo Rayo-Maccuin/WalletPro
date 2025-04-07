@@ -41,7 +41,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _buildProfileCard(),
                 const SizedBox(height: 25),
 
-                // Configuraciones generales
                 _buildSectionTitle('General'),
                 _buildSettingsCard([
                   _buildSwitchTile(
@@ -53,7 +52,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       setState(() {
                         _notificationsEnabled = value;
 
-                        // Mostrar mensaje de confirmación
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
@@ -76,8 +74,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     (value) {
                       setState(() {
                         _darkModeEnabled = value;
-
-                        // Mostrar mensaje de confirmación
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
@@ -128,7 +124,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     'Actualiza tu contraseña periódicamente',
                     Icons.lock_outline,
                     () {
-                      // Navegar a cambiar contraseña
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -143,7 +138,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     'Configura preguntas para recuperar tu cuenta',
                     Icons.help_outline,
                     () {
-                      // Navegar a preguntas de seguridad
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -155,7 +149,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ]),
                 const SizedBox(height: 25),
 
-                // Información
                 _buildSectionTitle('Información'),
                 _buildSettingsCard([
                   _buildNavigationTile(
@@ -163,7 +156,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     'Revisa nuestros términos de uso',
                     Icons.description_outlined,
                     () {
-                      // Navegar a términos y condiciones
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -178,7 +170,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     'Cómo protegemos tus datos',
                     Icons.privacy_tip_outlined,
                     () {
-                      // Navegar a política de privacidad
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -193,7 +184,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     'Información sobre la aplicación',
                     Icons.info_outline,
                     () {
-                      // Navegar a acerca de
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -205,7 +195,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ]),
                 const SizedBox(height: 25),
 
-                // Cerrar sesión
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -302,7 +291,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           IconButton(
             icon: const Icon(Icons.edit, color: Color(0xFF45AA96)),
             onPressed: () {
-              // Navegar a editar perfil
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -415,7 +403,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Cerrar el diálogo
+                Navigator.of(context).pop();
               },
               child: Text(
                 'Cancelar',
@@ -424,8 +412,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Cerrar el diálogo
-                // Navegar a la pantalla de inicio de sesión
+                Navigator.of(context).pop();
                 Navigator.of(
                   context,
                 ).pushNamedAndRemoveUntil('/', (route) => false);

@@ -15,43 +15,34 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
   final _interesController = TextEditingController(); // Interés compuesto (IC)
   final _montoController = TextEditingController(); // Monto compuesto (MC)
 
-  // Controladores para cada unidad de tiempo
   final _yearsController = TextEditingController();
   final _monthsController = TextEditingController();
   final _daysController = TextEditingController();
 
-  // Resultados
   double _calculatedValue = 0.0;
   double _totalAmount = 0.0;
   bool _hasCalculated = false;
 
-  // Controlador para el ScrollView
   final ScrollController _scrollController = ScrollController();
 
-  // Modo de tiempo seleccionado (simple o avanzado)
   bool _advancedTimeMode = false;
 
-  // Variable a calcular
-  String _variableToCalculate =
-      'interes'; // 'interes', 'capital', 'tasa', 'tiempo', 'monto'
+  String _variableToCalculate = 'interes';
 
-  // Opciones para unidades de tiempo en modo simple
   final List<Map<String, dynamic>> _timeUnits = [
     {'label': 'Años', 'value': 'years', 'factor': 1.0},
     {'label': 'Semestres', 'value': 'semesters', 'factor': 0.5},
     {'label': 'Trimestres', 'value': 'quarters', 'factor': 0.25},
     {'label': 'Meses', 'value': 'months', 'factor': 1 / 12},
-    {'label': 'Días', 'value': 'days', 'factor': 1 / 365},
+    {'label': 'Días', 'value': 'days', 'factor': 1 / 360},
   ];
 
-  // Unidad de tiempo seleccionada para modo simple (por defecto: años)
   Map<String, dynamic> _selectedTimeUnit = {
     'label': 'Años',
     'value': 'years',
     'factor': 1.0,
   };
 
-  // Opciones para frecuencia de capitalización
   final List<Map<String, dynamic>> _compoundingFrequencies = [
     {'label': 'Anual', 'value': 'annual', 'periods': 1},
     {'label': 'Semestral', 'value': 'semiannual', 'periods': 2},
@@ -60,14 +51,12 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     {'label': 'Diaria', 'value': 'daily', 'periods': 365},
   ];
 
-  // Frecuencia de capitalización seleccionada (por defecto: anual)
   Map<String, dynamic> _selectedFrequency = {
     'label': 'Anual',
     'value': 'annual',
     'periods': 1,
   };
 
-  // Opciones para formato de tasa de interés
   final List<Map<String, dynamic>> _interestRateFormats = [
     {'label': 'Anual', 'value': 'annual', 'factor': 1.0},
     {'label': 'Semestral', 'value': 'semiannual', 'factor': 2.0},
@@ -76,14 +65,12 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     {'label': 'Diaria', 'value': 'daily', 'factor': 365.0},
   ];
 
-  // Formato de tasa de interés seleccionado (por defecto: anual)
   Map<String, dynamic> _selectedRateFormat = {
     'label': 'Anual',
     'value': 'annual',
     'factor': 1.0,
   };
 
-  // Controlador para tiempo en modo simple
   final _simpleTimeController = TextEditingController();
 
   @override
@@ -100,7 +87,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     super.dispose();
   }
 
-  // Calcular el tiempo total en años
   double _calculateTimeInYears() {
     if (_advancedTimeMode) {
       double years =
@@ -126,7 +112,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     }
   }
 
-  // Convertir la tasa de interés al formato anual
   double _getAnnualRate() {
     if (_tasaController.text.isEmpty) return 0;
 
@@ -134,30 +119,23 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
         double.parse(_tasaController.text.replaceAll(',', '.')) / 100;
     double annualRate;
 
-    // Si la tasa ya es anual, no necesita conversión
     if (_selectedRateFormat['value'] == 'annual') {
       annualRate = inputRate;
     } else {
-      // Convertir de tasa periódica a tasa anual efectiva
-      // Fórmula: (1 + i)^n - 1, donde i es la tasa periódica y n es el número de períodos por año
       annualRate = pow(1 + inputRate, _selectedRateFormat['factor']) - 1;
     }
 
     return annualRate;
   }
 
-  // Obtener la tasa periódica según la frecuencia de capitalización
   double _getPeriodicRate() {
     double annualRate = _getAnnualRate();
     int periodsPerYear = _selectedFrequency['periods'];
 
-    // Convertir tasa anual efectiva a tasa periódica
-    // Fórmula: (1 + i)^(1/n) - 1, donde i es la tasa anual y n es el número de períodos por año
     return pow(1 + annualRate, 1 / periodsPerYear) - 1;
   }
 
   void _calculate() {
-    // Ocultar el teclado
     FocusScope.of(context).unfocus();
 
     try {
@@ -188,9 +166,7 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     }
   }
 
-  // Calcular Interés Compuesto (IC = MC - C)
   void _calculateInteres() {
-    // Validar que los campos principales tengan valores
     if (_capitalController.text.isEmpty || _montoController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -202,14 +178,11 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       );
       return;
     }
-
-    // Convertir valores a números
     final capital = double.parse(_capitalController.text.replaceAll(',', '.'));
     final montoCompuesto = double.parse(
       _montoController.text.replaceAll(',', '.'),
     );
 
-    // Calcular interés compuesto usando la fórmula IC = MC - C
     final interesCompuesto = montoCompuesto - capital;
 
     setState(() {
@@ -218,13 +191,10 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       _hasCalculated = true;
     });
 
-    // Desplazar hacia abajo para mostrar los resultados
     _scrollToResults();
   }
 
-  // Calcular Capital (C = MC / (1+i)^n)
   void _calculateCapital() {
-    // Validar que los campos necesarios tengan valores
     if (_montoController.text.isEmpty || _tasaController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -237,7 +207,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       return;
     }
 
-    // Validar que haya al menos un valor de tiempo
     if (_advancedTimeMode) {
       if (_yearsController.text.isEmpty &&
           _monthsController.text.isEmpty &&
@@ -262,25 +231,19 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       }
     }
 
-    // Convertir valores a números
     final montoCompuesto = double.parse(
       _montoController.text.replaceAll(',', '.'),
     );
 
-    // Obtener tiempo en años
     final timeInYears = _calculateTimeInYears();
 
-    // Obtener número de períodos de capitalización
     final periodsPerYear = _selectedFrequency['periods'];
     final totalPeriods = timeInYears * periodsPerYear;
 
-    // Calcular tasa por período
     final tasaPorPeriodo = _getPeriodicRate();
 
-    // Calcular capital usando la fórmula C = MC / (1+i)^n
     final capital = montoCompuesto / pow(1 + tasaPorPeriodo, totalPeriods);
 
-    // Calcular interés compuesto
     final interesCompuesto = montoCompuesto - capital;
 
     setState(() {
@@ -289,13 +252,10 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       _hasCalculated = true;
     });
 
-    // Desplazar hacia abajo para mostrar los resultados
     _scrollToResults();
   }
 
-  // Calcular Tasa de interés (i = (MC/C)^(1/n) - 1)
   void _calculateTasa() {
-    // Validar que los campos necesarios tengan valores
     if (_capitalController.text.isEmpty || _montoController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -308,7 +268,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       return;
     }
 
-    // Validar que haya al menos un valor de tiempo
     if (_advancedTimeMode) {
       if (_yearsController.text.isEmpty &&
           _monthsController.text.isEmpty &&
@@ -333,30 +292,22 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       }
     }
 
-    // Convertir valores a números
     final capital = double.parse(_capitalController.text.replaceAll(',', '.'));
     final montoCompuesto = double.parse(
       _montoController.text.replaceAll(',', '.'),
     );
 
-    // Obtener tiempo en años
     final timeInYears = _calculateTimeInYears();
 
-    // Obtener número de períodos de capitalización
     final periodsPerYear = _selectedFrequency['periods'];
     final totalPeriods = timeInYears * periodsPerYear;
 
-    // Calcular tasa de interés por período usando la fórmula i = (MC/C)^(1/n) - 1
     final tasaPorPeriodo = pow(montoCompuesto / capital, 1 / totalPeriods) - 1;
 
-    // Convertir a tasa anual efectiva
-
-    // Convertir a la tasa en el formato seleccionado por el usuario
     double tasaEnFormatoSeleccionado;
     if (_selectedRateFormat['value'] == 'annual') {
       tasaEnFormatoSeleccionado = pow(1 + tasaPorPeriodo, periodsPerYear) - 1;
     } else {
-      // Convertir de tasa anual efectiva a tasa periódica en el formato seleccionado
       tasaEnFormatoSeleccionado =
           pow(
             1 + pow(1 + tasaPorPeriodo, periodsPerYear) - 1,
@@ -365,23 +316,17 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
           1;
     }
 
-    // Calcular interés compuesto
     final interesCompuesto = montoCompuesto - capital;
 
     setState(() {
-      _calculatedValue =
-          tasaEnFormatoSeleccionado * 100; // Convertir a porcentaje
+      _calculatedValue = tasaEnFormatoSeleccionado * 100;
       _totalAmount = montoCompuesto;
       _hasCalculated = true;
     });
-
-    // Desplazar hacia abajo para mostrar los resultados
     _scrollToResults();
   }
 
-  // Calcular Tiempo (n = (Log MC - Log C) / Log(1+i))
   void _calculateTiempo() {
-    // Validar que los campos necesarios tengan valores
     if (_capitalController.text.isEmpty ||
         _tasaController.text.isEmpty ||
         _montoController.text.isEmpty) {
@@ -396,26 +341,20 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       return;
     }
 
-    // Convertir valores a números
     final capital = double.parse(_capitalController.text.replaceAll(',', '.'));
     final montoCompuesto = double.parse(
       _montoController.text.replaceAll(',', '.'),
     );
 
-    // Obtener períodos de capitalización por año
     final periodsPerYear = _selectedFrequency['periods'];
 
-    // Calcular tasa por período
     final tasaPorPeriodo = _getPeriodicRate();
 
-    // Calcular tiempo en períodos usando la fórmula n = (Log MC - Log C) / Log(1+i)
     final periodsTime =
         (log(montoCompuesto) - log(capital)) / log(1 + tasaPorPeriodo);
 
-    // Convertir a tiempo en años
     final timeInYears = periodsTime / periodsPerYear;
 
-    // Calcular interés compuesto
     final interesCompuesto = montoCompuesto - capital;
 
     setState(() {
@@ -424,13 +363,10 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       _hasCalculated = true;
     });
 
-    // Desplazar hacia abajo para mostrar los resultados
     _scrollToResults();
   }
 
-  // Calcular Monto Compuesto (MC = C(1+i)^n)
   void _calculateMonto() {
-    // Validar que los campos necesarios tengan valores
     if (_capitalController.text.isEmpty || _tasaController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -441,7 +377,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       return;
     }
 
-    // Validar que haya al menos un valor de tiempo
     if (_advancedTimeMode) {
       if (_yearsController.text.isEmpty &&
           _monthsController.text.isEmpty &&
@@ -466,23 +401,17 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       }
     }
 
-    // Convertir valores a números
     final capital = double.parse(_capitalController.text.replaceAll(',', '.'));
 
-    // Obtener tiempo en años
     final timeInYears = _calculateTimeInYears();
 
-    // Obtener número de períodos de capitalización
     final periodsPerYear = _selectedFrequency['periods'];
     final totalPeriods = timeInYears * periodsPerYear;
 
-    // Calcular tasa por período
     final tasaPorPeriodo = _getPeriodicRate();
 
-    // Calcular monto compuesto usando la fórmula MC = C(1+i)^n
     final montoCompuesto = capital * pow(1 + tasaPorPeriodo, totalPeriods);
 
-    // Calcular interés compuesto
     final interesCompuesto = montoCompuesto - capital;
 
     setState(() {
@@ -491,7 +420,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       _hasCalculated = true;
     });
 
-    // Desplazar hacia abajo para mostrar los resultados
     _scrollToResults();
   }
 
@@ -505,7 +433,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     });
   }
 
-  // Limpiar todos los campos
   void _clearFields() {
     setState(() {
       _capitalController.clear();
@@ -521,7 +448,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       _hasCalculated = false;
     });
 
-    // Mostrar mensaje de confirmación
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Todos los campos han sido limpiados'),
@@ -530,15 +456,13 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     );
   }
 
-  // Generar descripción del tiempo para mostrar en resultados
   String _getTimeDescription() {
     if (_variableToCalculate == 'tiempo') {
-      // Si estamos calculando el tiempo, mostrar el resultado calculado
       double years = _calculatedValue;
       int fullYears = years.floor();
       double remainingMonths = (years - fullYears) * 12;
       int months = remainingMonths.floor();
-      double remainingDays = (remainingMonths - months) * 30; // Aproximación
+      double remainingDays = (remainingMonths - months) * 30;
       int days = remainingDays.round();
 
       List<String> parts = [];
@@ -554,7 +478,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
 
       return parts.join(', ');
     } else {
-      // Si no estamos calculando el tiempo, mostrar los valores ingresados
       if (_advancedTimeMode) {
         List<String> parts = [];
 
@@ -593,7 +516,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     }
   }
 
-  // Obtener el título del resultado según la variable calculada
   String _getResultTitle() {
     switch (_variableToCalculate) {
       case 'interes':
@@ -611,7 +533,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     }
   }
 
-  // Obtener el valor formateado del resultado
   String _getFormattedResult() {
     switch (_variableToCalculate) {
       case 'interes':
@@ -627,7 +548,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     }
   }
 
-  // Obtener el ícono para el resultado
   IconData _getResultIcon() {
     switch (_variableToCalculate) {
       case 'interes':
@@ -645,7 +565,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     }
   }
 
-  // Método para calcular el interés de manera segura
   double _getInterestAmount() {
     try {
       if (_variableToCalculate == 'interes') {
@@ -654,14 +573,12 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
         return _calculatedValue -
             double.parse(_capitalController.text.replaceAll(',', '.'));
       } else {
-        // Para otros cálculos, el interés es la diferencia entre monto y capital
         return _totalAmount -
             (_variableToCalculate == 'capital'
                 ? _calculatedValue
                 : double.parse(_capitalController.text.replaceAll(',', '.')));
       }
     } catch (e) {
-      // En caso de error, devolver 0
       return 0;
     }
   }
@@ -685,7 +602,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Título de la app
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(15),
@@ -723,7 +639,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
 
             const SizedBox(height: 25),
 
-            // Tarjeta de información
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -766,8 +681,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
             ),
 
             const SizedBox(height: 25),
-
-            // Tarjeta de fórmula
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -887,7 +800,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
 
             const SizedBox(height: 25),
 
-            // Tarjeta de calculadora
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -947,7 +859,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Selector de variable a calcular
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1034,7 +945,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Frecuencia de capitalización
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1093,7 +1003,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                   ),
                   const SizedBox(height: 15),
 
-                  // Campo de capital (excepto cuando se calcula C)
                   if (_variableToCalculate != 'capital') ...[
                     _buildInputField(
                       controller: _capitalController,
@@ -1107,7 +1016,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                     const SizedBox(height: 15),
                   ],
 
-                  // Campo de monto compuesto (excepto cuando se calcula MC)
                   if (_variableToCalculate != 'monto') ...[
                     _buildInputField(
                       controller: _montoController,
@@ -1121,7 +1029,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                     const SizedBox(height: 15),
                   ],
 
-                  // Campo de tasa de interés (excepto cuando se calcula i)
                   if (_variableToCalculate != 'tasa') ...[
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1138,7 +1045,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Campo de entrada para el valor de la tasa
                             Expanded(
                               flex: 3,
                               child: TextField(
@@ -1191,11 +1097,10 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                               ),
                             ),
                             const SizedBox(width: 10),
-                            // Selector de formato de tasa
                             Expanded(
                               flex: 2,
                               child: Container(
-                                height: 56, // Misma altura que el TextField
+                                height: 56,
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(color: Colors.grey[300]!),
@@ -1255,7 +1160,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                     const SizedBox(height: 15),
                   ],
 
-                  // Selector de modo de tiempo (excepto cuando se calcula n)
                   if (_variableToCalculate != 'tiempo') ...[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1292,12 +1196,10 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                     ),
                     const SizedBox(height: 8),
 
-                    // Modo de tiempo simple
                     if (!_advancedTimeMode) ...[
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Campo de entrada para el valor del tiempo
                           Expanded(
                             flex: 3,
                             child: TextField(
@@ -1350,7 +1252,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                             ),
                           ),
                           const SizedBox(width: 10),
-                          // Selector de unidad de tiempo
                           Expanded(
                             flex: 2,
                             child: Container(
@@ -1400,7 +1301,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                       ),
                     ],
 
-                    // Modo de tiempo avanzado
                     if (_advancedTimeMode) ...[
                       Container(
                         padding: const EdgeInsets.all(15),
@@ -1413,7 +1313,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                         ),
                         child: Column(
                           children: [
-                            // Años
                             Row(
                               children: [
                                 Expanded(
@@ -1482,7 +1381,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                             ),
                             const SizedBox(height: 10),
 
-                            // Meses
                             Row(
                               children: [
                                 Expanded(
@@ -1550,8 +1448,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                               ],
                             ),
                             const SizedBox(height: 10),
-
-                            // Días
                             Row(
                               children: [
                                 Expanded(
@@ -1620,7 +1516,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                             ),
                             const SizedBox(height: 10),
 
-                            // Nota informativa
                             Row(
                               children: [
                                 Icon(
@@ -1648,8 +1543,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                   ],
 
                   const SizedBox(height: 25),
-
-                  // Botón de calcular
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -1675,7 +1568,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
               ),
             ),
 
-            // Resultados
             if (_hasCalculated) ...[
               const SizedBox(height: 25),
 
@@ -1705,8 +1597,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
-
-                    // Valor calculado
                     _buildResultItem(
                       label: _getResultTitle(),
                       value: _getFormattedResult(),
@@ -1715,7 +1605,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                     ),
                     const SizedBox(height: 15),
 
-                    // Monto total
                     _buildResultItem(
                       label: 'Monto total:',
                       value: '\$${_formatNumber(_totalAmount)}',
@@ -1724,7 +1613,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                     ),
                     const SizedBox(height: 15),
 
-                    // Detalles del cálculo
                     Container(
                       padding: const EdgeInsets.all(15),
                       decoration: BoxDecoration(
@@ -1747,7 +1635,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                           ),
                           const SizedBox(height: 10),
 
-                          // Mostrar capital (si no es lo que se calculó)
                           if (_variableToCalculate != 'capital' &&
                               _capitalController.text.isNotEmpty) ...[
                             Text(
@@ -1759,7 +1646,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                             ),
                           ],
 
-                          // Mostrar monto compuesto (si no es lo que se calculó)
                           if (_variableToCalculate != 'monto' &&
                               _montoController.text.isNotEmpty) ...[
                             Text(
@@ -1771,7 +1657,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                             ),
                           ],
 
-                          // Mostrar tasa de interés (si no es lo que se calculó)
                           if (_variableToCalculate != 'tasa' &&
                               _tasaController.text.isNotEmpty) ...[
                             Text(
@@ -1790,7 +1675,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                             ),
                           ],
 
-                          // Mostrar frecuencia de capitalización
                           Text(
                             'Frecuencia de capitalización: ${_selectedFrequency['label']} (${_selectedFrequency['periods']} período(s) por año)',
                             style: TextStyle(
@@ -1799,7 +1683,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                             ),
                           ),
 
-                          // Mostrar interés compuesto
                           if (_variableToCalculate != 'interes') ...[
                             Text(
                               'Interés compuesto (IC): \$${_formatNumber(_getInterestAmount())}',
@@ -1810,7 +1693,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                             ),
                           ],
 
-                          // Mostrar tiempo
                           if (_variableToCalculate != 'tiempo') ...[
                             Text(
                               'Tiempo: ${_getTimeDescription()}',
@@ -1839,8 +1721,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                     ),
 
                     const SizedBox(height: 20),
-
-                    // Nota explicativa
                     Container(
                       padding: const EdgeInsets.all(15),
                       decoration: BoxDecoration(
@@ -1873,7 +1753,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     );
   }
 
-  // Widget para los elementos de la fórmula
   Widget _buildFormulaItem(String symbol, String description) {
     return Expanded(
       child: Column(
@@ -1897,7 +1776,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     );
   }
 
-  // Widget para los campos de entrada
   Widget _buildInputField({
     required TextEditingController controller,
     required String label,
@@ -1952,7 +1830,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     );
   }
 
-  // Widget para los elementos de resultado
   Widget _buildResultItem({
     required String label,
     required String value,
@@ -1991,7 +1868,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     );
   }
 
-  // Formatear números con separadores de miles
   String _formatNumber(double number) {
     return number
         .toStringAsFixed(2)

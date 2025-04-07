@@ -14,43 +14,34 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
   final _rateController = TextEditingController();
   final _interestController = TextEditingController();
 
-  // Controladores para cada unidad de tiempo
   final _yearsController = TextEditingController();
   final _monthsController = TextEditingController();
   final _daysController = TextEditingController();
 
-  // Resultados
   double _calculatedValue = 0.0;
   double _totalAmount = 0.0;
   bool _hasCalculated = false;
 
-  // Controlador para el ScrollView
   final ScrollController _scrollController = ScrollController();
 
-  // Modo de tiempo seleccionado (simple o avanzado)
   bool _advancedTimeMode = false;
 
-  // Variable a calcular
-  String _variableToCalculate =
-      'interest'; // 'interest', 'principal', 'rate', 'time'
+  String _variableToCalculate = 'interest';
 
-  // Opciones para unidades de tiempo en modo simple
   final List<Map<String, dynamic>> _timeUnits = [
     {'label': 'Años', 'value': 'years', 'factor': 1.0},
     {'label': 'Semestres', 'value': 'semesters', 'factor': 0.5},
     {'label': 'Trimestres', 'value': 'quarters', 'factor': 0.25},
     {'label': 'Meses', 'value': 'months', 'factor': 1 / 12},
-    {'label': 'Días', 'value': 'days', 'factor': 1 / 365},
+    {'label': 'Días', 'value': 'days', 'factor': 1 / 360},
   ];
 
-  // Unidad de tiempo seleccionada para modo simple (por defecto: años)
   Map<String, dynamic> _selectedTimeUnit = {
     'label': 'Años',
     'value': 'years',
     'factor': 1.0,
   };
 
-  // Controlador para tiempo en modo simple
   final _simpleTimeController = TextEditingController();
 
   @override
@@ -66,7 +57,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
     super.dispose();
   }
 
-  // Calcular el tiempo total en años
   double _calculateTimeInYears() {
     if (_advancedTimeMode) {
       double years =
@@ -93,7 +83,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
   }
 
   void _calculate() {
-    // Ocultar el teclado
     FocusScope.of(context).unfocus();
 
     try {
@@ -122,7 +111,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
   }
 
   void _calculateInterest() {
-    // Validar que los campos principales tengan valores
     if (_principalController.text.isEmpty || _rateController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -135,7 +123,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
       return;
     }
 
-    // Validar que haya al menos un valor de tiempo
     if (_advancedTimeMode) {
       if (_yearsController.text.isEmpty &&
           _monthsController.text.isEmpty &&
@@ -160,18 +147,13 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
       }
     }
 
-    // Convertir valores a números
     final principal = double.parse(
       _principalController.text.replaceAll(',', '.'),
     );
-    final rate =
-        double.parse(_rateController.text.replaceAll(',', '.')) /
-        100; // Convertir a decimal
+    final rate = double.parse(_rateController.text.replaceAll(',', '.')) / 100;
 
-    // Obtener tiempo en años
     final timeInYears = _calculateTimeInYears();
 
-    // Calcular interés simple
     final interest = principal * rate * timeInYears;
     final totalAmount = principal + interest;
 
@@ -181,12 +163,10 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
       _hasCalculated = true;
     });
 
-    // Desplazar hacia abajo para mostrar los resultados
     _scrollToResults();
   }
 
   void _calculatePrincipal() {
-    // Validar que los campos necesarios tengan valores
     if (_interestController.text.isEmpty || _rateController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -197,7 +177,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
       return;
     }
 
-    // Validar que haya al menos un valor de tiempo
     if (_advancedTimeMode) {
       if (_yearsController.text.isEmpty &&
           _monthsController.text.isEmpty &&
@@ -222,18 +201,13 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
       }
     }
 
-    // Convertir valores a números
     final interest = double.parse(
       _interestController.text.replaceAll(',', '.'),
     );
-    final rate =
-        double.parse(_rateController.text.replaceAll(',', '.')) /
-        100; // Convertir a decimal
+    final rate = double.parse(_rateController.text.replaceAll(',', '.')) / 100;
 
-    // Obtener tiempo en años
     final timeInYears = _calculateTimeInYears();
 
-    // Calcular capital inicial (P = I / (r * t))
     final principal = interest / (rate * timeInYears);
     final totalAmount = principal + interest;
 
@@ -243,12 +217,10 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
       _hasCalculated = true;
     });
 
-    // Desplazar hacia abajo para mostrar los resultados
     _scrollToResults();
   }
 
   void _calculateRate() {
-    // Validar que los campos necesarios tengan valores
     if (_principalController.text.isEmpty || _interestController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -259,7 +231,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
       return;
     }
 
-    // Validar que haya al menos un valor de tiempo
     if (_advancedTimeMode) {
       if (_yearsController.text.isEmpty &&
           _monthsController.text.isEmpty &&
@@ -284,33 +255,27 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
       }
     }
 
-    // Convertir valores a números
     final principal = double.parse(
       _principalController.text.replaceAll(',', '.'),
     );
     final interest = double.parse(
       _interestController.text.replaceAll(',', '.'),
     );
-
-    // Obtener tiempo en años
     final timeInYears = _calculateTimeInYears();
 
-    // Calcular tasa de interés (r = I / (P * t))
     final rate = interest / (principal * timeInYears);
     final totalAmount = principal + interest;
 
     setState(() {
-      _calculatedValue = rate * 100; // Convertir a porcentaje
+      _calculatedValue = rate * 100;
       _totalAmount = totalAmount;
       _hasCalculated = true;
     });
 
-    // Desplazar hacia abajo para mostrar los resultados
     _scrollToResults();
   }
 
   void _calculateTime() {
-    // Validar que los campos necesarios tengan valores
     if (_principalController.text.isEmpty ||
         _rateController.text.isEmpty ||
         _interestController.text.isEmpty) {
@@ -325,18 +290,14 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
       return;
     }
 
-    // Convertir valores a números
     final principal = double.parse(
       _principalController.text.replaceAll(',', '.'),
     );
-    final rate =
-        double.parse(_rateController.text.replaceAll(',', '.')) /
-        100; // Convertir a decimal
+    final rate = double.parse(_rateController.text.replaceAll(',', '.')) / 100;
     final interest = double.parse(
       _interestController.text.replaceAll(',', '.'),
     );
 
-    // Calcular tiempo en años (t = I / (P * r))
     final timeInYears = interest / (principal * rate);
     final totalAmount = principal + interest;
 
@@ -346,7 +307,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
       _hasCalculated = true;
     });
 
-    // Desplazar hacia abajo para mostrar los resultados
     _scrollToResults();
   }
 
@@ -360,7 +320,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
     });
   }
 
-  // Limpiar todos los campos
   void _clearFields() {
     setState(() {
       _principalController.clear();
@@ -375,7 +334,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
       _hasCalculated = false;
     });
 
-    // Mostrar mensaje de confirmación
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Todos los campos han sido limpiados'),
@@ -384,7 +342,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
     );
   }
 
-  // Generar descripción del tiempo para mostrar en resultados
   String _getTimeDescription() {
     if (_advancedTimeMode) {
       List<String> parts = [];
@@ -421,7 +378,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
     }
   }
 
-  // Obtener el título del resultado según la variable calculada
   String _getResultTitle() {
     switch (_variableToCalculate) {
       case 'interest':
@@ -437,7 +393,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
     }
   }
 
-  // Obtener el valor formateado del resultado
   String _getFormattedResult() {
     switch (_variableToCalculate) {
       case 'interest':
@@ -452,7 +407,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
     }
   }
 
-  // Obtener el ícono para el resultado
   IconData _getResultIcon() {
     switch (_variableToCalculate) {
       case 'interest':
@@ -487,7 +441,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Título de la app
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(15),
@@ -525,7 +478,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
 
             const SizedBox(height: 25),
 
-            // Tarjeta de información
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -569,7 +521,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
 
             const SizedBox(height: 25),
 
-            // Tarjeta de fórmula
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -645,7 +596,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
 
             const SizedBox(height: 25),
 
-            // Tarjeta de calculadora
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -704,8 +654,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
                     ],
                   ),
                   const SizedBox(height: 20),
-
-                  // Selector de variable a calcular
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -779,8 +727,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
                     ],
                   ),
                   const SizedBox(height: 20),
-
-                  // Campo de capital inicial (excepto cuando se calcula P)
                   if (_variableToCalculate != 'principal') ...[
                     _buildInputField(
                       controller: _principalController,
@@ -794,7 +740,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
                     const SizedBox(height: 15),
                   ],
 
-                  // Campo de tasa de interés (excepto cuando se calcula r)
                   if (_variableToCalculate != 'rate') ...[
                     _buildInputField(
                       controller: _rateController,
@@ -808,7 +753,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
                     const SizedBox(height: 15),
                   ],
 
-                  // Campo de interés (excepto cuando se calcula I)
                   if (_variableToCalculate != 'interest') ...[
                     _buildInputField(
                       controller: _interestController,
@@ -822,7 +766,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
                     const SizedBox(height: 15),
                   ],
 
-                  // Selector de modo de tiempo (excepto cuando se calcula t)
                   if (_variableToCalculate != 'time') ...[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -859,12 +802,10 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
                     ),
                     const SizedBox(height: 8),
 
-                    // Modo de tiempo simple
                     if (!_advancedTimeMode) ...[
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Campo de entrada para el valor del tiempo
                           Expanded(
                             flex: 3,
                             child: TextField(
@@ -917,7 +858,7 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
                             ),
                           ),
                           const SizedBox(width: 10),
-                          // Selector de unidad de tiempo
+
                           Expanded(
                             flex: 2,
                             child: Container(
@@ -967,7 +908,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
                       ),
                     ],
 
-                    // Modo de tiempo avanzado
                     if (_advancedTimeMode) ...[
                       Container(
                         padding: const EdgeInsets.all(15),
@@ -1049,7 +989,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
                             ),
                             const SizedBox(height: 10),
 
-                            // Meses
                             Row(
                               children: [
                                 Expanded(
@@ -1118,7 +1057,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
                             ),
                             const SizedBox(height: 10),
 
-                            // Días
                             Row(
                               children: [
                                 Expanded(
@@ -1187,7 +1125,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
                             ),
                             const SizedBox(height: 10),
 
-                            // Nota informativa
                             Row(
                               children: [
                                 Icon(
@@ -1216,7 +1153,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
 
                   const SizedBox(height: 25),
 
-                  // Botón de calcular
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -1242,7 +1178,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
               ),
             ),
 
-            // Resultados
             if (_hasCalculated) ...[
               const SizedBox(height: 25),
 
@@ -1273,7 +1208,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Valor calculado
                     _buildResultItem(
                       label: _getResultTitle(),
                       value: _getFormattedResult(),
@@ -1282,7 +1216,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
                     ),
                     const SizedBox(height: 15),
 
-                    // Monto total (excepto cuando se calcula el tiempo)
                     if (_variableToCalculate != 'time') ...[
                       _buildResultItem(
                         label: 'Monto total:',
@@ -1293,7 +1226,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
                       const SizedBox(height: 15),
                     ],
 
-                    // Detalles del cálculo
                     Container(
                       padding: const EdgeInsets.all(15),
                       decoration: BoxDecoration(
@@ -1316,7 +1248,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
                           ),
                           const SizedBox(height: 10),
 
-                          // Mostrar capital inicial (si no es lo que se calculó)
                           if (_variableToCalculate != 'principal') ...[
                             Text(
                               'Capital inicial: \$${_formatNumber(double.parse(_principalController.text.replaceAll(',', '.')))}',
@@ -1327,7 +1258,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
                             ),
                           ],
 
-                          // Mostrar tasa de interés (si no es lo que se calculó)
                           if (_variableToCalculate != 'rate') ...[
                             Text(
                               'Tasa de interés anual: ${_rateController.text.replaceAll(',', '.')}%',
@@ -1338,7 +1268,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
                             ),
                           ],
 
-                          // Mostrar interés (si no es lo que se calculó)
                           if (_variableToCalculate != 'interest') ...[
                             Text(
                               'Interés: \$${_formatNumber(double.parse(_interestController.text.replaceAll(',', '.')))}',
@@ -1349,7 +1278,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
                             ),
                           ],
 
-                          // Mostrar tiempo (si no es lo que se calculó)
                           if (_variableToCalculate != 'time') ...[
                             Text(
                               'Tiempo: ${_getTimeDescription()}',
@@ -1372,7 +1300,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
 
                     const SizedBox(height: 20),
 
-                    // Nota explicativa
                     Container(
                       padding: const EdgeInsets.all(15),
                       decoration: BoxDecoration(
@@ -1405,7 +1332,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
     );
   }
 
-  // Widget para los elementos de la fórmula
   Widget _buildFormulaItem(String symbol, String description) {
     return Expanded(
       child: Column(
@@ -1429,7 +1355,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
     );
   }
 
-  // Widget para los campos de entrada
   Widget _buildInputField({
     required TextEditingController controller,
     required String label,
@@ -1484,7 +1409,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
     );
   }
 
-  // Widget para los elementos de resultado
   Widget _buildResultItem({
     required String label,
     required String value,
@@ -1523,7 +1447,6 @@ class _SimpleInterestScreenState extends State<SimpleInterestScreen> {
     );
   }
 
-  // Formatear números con separadores de miles
   String _formatNumber(double number) {
     return number
         .toStringAsFixed(2)

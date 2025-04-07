@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:testapp/presentation/formulas/amortizacion_screen.dart';
 import 'package:testapp/presentation/formulas/simple_interest_screen.dart';
 import 'package:testapp/presentation/formulas/compound_interest.dart';
 import 'package:testapp/presentation/formulas/annuity_screen.dart';
@@ -120,7 +121,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         description: 'Calcula el plan de pagos de un préstamo',
                         onTap: () {
                           Navigator.pop(context);
-                          // Navegar a la calculadora de amortización
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => const AmortizationCalculator(),
+                            ),
+                          );
                         },
                       ),
                       _buildFinancialOption(
@@ -166,22 +173,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         onTap: () {
                           Navigator.pop(context);
                           // Navegar a la calculadora de inflación
-                        },
-                      ),
-                      _buildFinancialOption(
-                        icon: Icons.attach_money,
-                        title: 'Tasa de interes',
-                        description:
-                            'Calcula el dinero adicional que se debe pagar por solicitar un préstamo',
-                        onTap: () {
-                          Navigator.pop(context);
-                          /*Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const AnnuityScreen(),
-                            ),
-                          );*/
-                          // Navegar a la calculadora de anualidades
                         },
                       ),
                       _buildFinancialOption(
