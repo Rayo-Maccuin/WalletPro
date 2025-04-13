@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:math' as math;
-import 'package:simple_animations/simple_animations.dart';
 import 'package:flutter/services.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -15,17 +14,13 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
-  late AnimationController _logoAnimationController;
-  late AnimationController _particleAnimationController;
-  late AnimationController _waveAnimationController;
-  late AnimationController _textAnimationController;
-  late Animation<double> _logoScaleAnimation;
-  late Animation<double> _logoRotateAnimation;
-  late Animation<double> _textSlideAnimation;
-  late Animation<double> _fadeAnimation;
-
-  final List<CurrencyParticle> _particles = [];
-  final int _numParticles = 30;
+  late AnimationController _mainController;
+  late AnimationController _waveController;
+  late AnimationController _particleController;
+  late Animation<double> _fadeInAnimation;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _slideUpAnimation;
+  late Animation<double> _slideDownAnimation;
 
   @override
   void initState() {
@@ -38,94 +33,66 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    _initParticles();
-
-    _logoAnimationController = AnimationController(
+    _mainController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2500),
+      duration: const Duration(milliseconds: 2000),
     );
 
-    _particleAnimationController = AnimationController(
+    _waveController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 5000),
+      duration: const Duration(seconds: 5),
     )..repeat();
 
-    _waveAnimationController = AnimationController(
+    _particleController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3000),
+      duration: const Duration(seconds: 3),
     )..repeat();
 
-    _textAnimationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
+    _fadeInAnimation = CurvedAnimation(
+      parent: _mainController,
+      curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
     );
 
-    _logoScaleAnimation = TweenSequence<double>([
+    _scaleAnimation = TweenSequence<double>([
       TweenSequenceItem(
         tween: Tween<double>(
           begin: 0.0,
-          end: 1.2,
+          end: 1.1,
         ).chain(CurveTween(curve: Curves.easeOutCubic)),
         weight: 60,
       ),
       TweenSequenceItem(
         tween: Tween<double>(
-          begin: 1.2,
+          begin: 1.1,
           end: 1.0,
         ).chain(CurveTween(curve: Curves.elasticOut)),
         weight: 40,
       ),
-    ]).animate(_logoAnimationController);
+    ]).animate(_mainController);
 
-    _logoRotateAnimation = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween<double>(
-          begin: -0.1,
-          end: 0.1,
-        ).chain(CurveTween(curve: Curves.easeInOut)),
-        weight: 50,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(
-          begin: 0.1,
-          end: 0.0,
-        ).chain(CurveTween(curve: Curves.easeInOut)),
-        weight: 50,
-      ),
-    ]).animate(_logoAnimationController);
-
-    _textSlideAnimation = Tween<double>(begin: 50.0, end: 0.0).animate(
+    _slideUpAnimation = Tween<double>(begin: 30.0, end: 0.0).animate(
       CurvedAnimation(
-        parent: _textAnimationController,
-        curve: Curves.easeOutCubic,
+        parent: _mainController,
+        curve: const Interval(0.3, 1.0, curve: Curves.easeOutCubic),
       ),
     );
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _textAnimationController, curve: Curves.easeIn),
+    _slideDownAnimation = Tween<double>(begin: -30.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _mainController,
+        curve: const Interval(0.3, 1.0, curve: Curves.easeOutCubic),
+      ),
     );
 
-    _logoAnimationController.forward().then((_) {
-      _textAnimationController.forward();
-    });
+    _mainController.forward();
 
-    Timer(const Duration(milliseconds: 4500), () {
+    Timer(const Duration(milliseconds: 3500), () {
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           pageBuilder:
               (context, animation, secondaryAnimation) => widget.nextScreen,
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            const begin = 0.0;
-            const end = 1.0;
-            const curve = Curves.easeInOut;
-
-            var tween = Tween(
-              begin: begin,
-              end: end,
-            ).chain(CurveTween(curve: curve));
-            var fadeAnimation = animation.drive(tween);
-
-            return FadeTransition(opacity: fadeAnimation, child: child);
+            return FadeTransition(opacity: animation, child: child);
           },
           transitionDuration: const Duration(milliseconds: 800),
         ),
@@ -133,35 +100,11 @@ class _SplashScreenState extends State<SplashScreen>
     });
   }
 
-  void _initParticles() {
-    final random = math.Random();
-    for (int i = 0; i < _numParticles; i++) {
-      _particles.add(
-        CurrencyParticle(
-          x: random.nextDouble() * 400 - 200,
-          y: random.nextDouble() * 400 - 200,
-          size: 5 + random.nextDouble() * 15,
-          speed: 0.5 + random.nextDouble() * 1.5,
-          angle: random.nextDouble() * 2 * math.pi,
-          symbol: _getRandomCurrencySymbol(random),
-          opacity: 0.1 + random.nextDouble() * 0.4,
-          rotationSpeed: (random.nextDouble() - 0.5) * 0.05,
-        ),
-      );
-    }
-  }
-
-  String _getRandomCurrencySymbol(math.Random random) {
-    final symbols = ['₿', '€', '\$', '£', '¥', '₽', '₹', '₺', '₴', '₸'];
-    return symbols[random.nextInt(symbols.length)];
-  }
-
   @override
   void dispose() {
-    _logoAnimationController.dispose();
-    _particleAnimationController.dispose();
-    _waveAnimationController.dispose();
-    _textAnimationController.dispose();
+    _mainController.dispose();
+    _waveController.dispose();
+    _particleController.dispose();
     super.dispose();
   }
 
@@ -173,55 +116,49 @@ class _SplashScreenState extends State<SplashScreen>
       backgroundColor: const Color(0xFF151616),
       body: Stack(
         children: [
+          // Animated background
           AnimatedBuilder(
-            animation: _waveAnimationController,
+            animation: _waveController,
             builder: (context, child) {
               return CustomPaint(
                 size: Size(size.width, size.height),
-                painter: WavePainter(
-                  animation: _waveAnimationController.value,
-                  color1: const Color(0xFF293431),
-                  color2: const Color(0xFF151616),
+                painter: WaveBackgroundPainter(
+                  animation: _waveController.value,
+                  primaryColor: const Color(0xFF293431),
                   accentColor: const Color(0xFF05CEA8),
                 ),
               );
             },
           ),
 
+          // Animated particles
           AnimatedBuilder(
-            animation: _particleAnimationController,
+            animation: _particleController,
             builder: (context, child) {
               return CustomPaint(
                 size: Size(size.width, size.height),
                 painter: ParticlesPainter(
-                  particles: _particles,
-                  animation: _particleAnimationController.value,
-                  primaryColor: const Color(0xFF45AA96),
-                  accentColor: const Color(0xFF05CEA8),
+                  animation: _particleController.value,
+                  color: const Color(0xFF05CEA8),
                 ),
               );
             },
           ),
 
-          CustomPaint(
-            size: Size(size.width, size.height),
-            painter: NetworkLinesPainter(
-              color: const Color(0xFF45AA96).withOpacity(0.15),
-            ),
-          ),
-
+          // Main content
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                // Logo
                 AnimatedBuilder(
-                  animation: _logoAnimationController,
+                  animation: _mainController,
                   builder: (context, child) {
-                    return Transform.scale(
-                      scale: _logoScaleAnimation.value,
-                      child: Transform.rotate(
-                        angle: _logoRotateAnimation.value,
-                        child: _buildFinancialLogo(),
+                    return Opacity(
+                      opacity: _fadeInAnimation.value,
+                      child: Transform.scale(
+                        scale: _scaleAnimation.value,
+                        child: _buildLogo(),
                       ),
                     );
                   },
@@ -229,14 +166,15 @@ class _SplashScreenState extends State<SplashScreen>
 
                 const SizedBox(height: 40),
 
+                // Title
                 AnimatedBuilder(
-                  animation: _textAnimationController,
+                  animation: _mainController,
                   builder: (context, child) {
                     return Opacity(
-                      opacity: _fadeAnimation.value,
+                      opacity: _fadeInAnimation.value,
                       child: Transform.translate(
-                        offset: Offset(0, _textSlideAnimation.value),
-                        child: _buildText(),
+                        offset: Offset(0, _slideUpAnimation.value),
+                        child: _buildTitle(),
                       ),
                     );
                   },
@@ -244,336 +182,267 @@ class _SplashScreenState extends State<SplashScreen>
 
                 const SizedBox(height: 60),
 
+                // Features
                 AnimatedBuilder(
-                  animation: _textAnimationController,
+                  animation: _mainController,
                   builder: (context, child) {
                     return Opacity(
-                      opacity: _fadeAnimation.value,
-                      child: _buildLoadingIndicator(),
+                      opacity: _fadeInAnimation.value,
+                      child: Transform.translate(
+                        offset: Offset(0, _slideDownAnimation.value),
+                        child: _buildFeatures(),
+                      ),
                     );
                   },
                 ),
               ],
             ),
           ),
+
+          // Progress indicator
+          Positioned(
+            bottom: 40,
+            left: 0,
+            right: 0,
+            child: AnimatedBuilder(
+              animation: _mainController,
+              builder: (context, child) {
+                return Opacity(
+                  opacity: _fadeInAnimation.value,
+                  child: Center(child: _buildProgressIndicator()),
+                );
+              },
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildFinancialLogo() {
+  Widget _buildLogo() {
     return Container(
-      width: 120,
-      height: 120,
+      width: 130,
+      height: 130,
       decoration: BoxDecoration(
-        color: const Color(0xFF151616),
-        borderRadius: BorderRadius.circular(30),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [const Color(0xFF293431), const Color(0xFF151616)],
+        ),
+        shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF05CEA8).withOpacity(0.5),
-            blurRadius: 30,
+            color: const Color(0xFF05CEA8).withOpacity(0.3),
+            blurRadius: 25,
             spreadRadius: 5,
           ),
         ],
       ),
       child: Stack(
         children: [
+          // Outer ring
           Center(
             child: Container(
-              width: 80,
-              height: 80,
+              width: 110,
+              height: 110,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    const Color(0xFF05CEA8).withOpacity(0.7),
-                    const Color(0xFF05CEA8).withOpacity(0.0),
-                  ],
-                  stops: const [0.1, 1.0],
+                border: Border.all(
+                  color: const Color(0xFF05CEA8).withOpacity(0.5),
+                  width: 2,
                 ),
               ),
             ),
           ),
 
+          // Inner ring
           Center(
-            child: ShaderMask(
-              shaderCallback: (bounds) {
-                return LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [const Color(0xFF05CEA8), const Color(0xFF45AA96)],
-                ).createShader(bounds);
-              },
-              child: CustomPaint(
-                size: const Size(60, 60),
-                painter: FinancialGraphPainter(),
+            child: Container(
+              width: 90,
+              height: 90,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: const Color(0xFF05CEA8).withOpacity(0.7),
+                  width: 1.5,
+                ),
               ),
             ),
           ),
 
-          ...List.generate(8, (index) {
-            final angle = index * (math.pi / 4);
-            return AnimatedBuilder(
-              animation: _logoAnimationController,
-              builder: (context, child) {
-                final progress = _logoAnimationController.value;
-                final delay = index * 0.1;
-                final animationValue = (progress - delay).clamp(0.0, 1.0);
-
-                return Positioned(
-                  left: 60 + math.cos(angle) * 50 * animationValue,
-                  top: 60 + math.sin(angle) * 50 * animationValue,
-                  child: Opacity(
-                    opacity: animationValue,
-                    child: Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF05CEA8),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF05CEA8).withOpacity(0.5),
-                            blurRadius: 5,
-                            spreadRadius: 1,
-                          ),
-                        ],
-                      ),
-                    ),
+          // Center icon
+          Center(
+            child: Container(
+              width: 70,
+              height: 70,
+              decoration: BoxDecoration(
+                color: const Color(0xFF151616),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 10,
+                    spreadRadius: 1,
+                    offset: const Offset(0, 2),
                   ),
-                );
-              },
-            );
-          }),
+                ],
+              ),
+              child: Center(
+                child: CustomPaint(
+                  size: const Size(40, 40),
+                  painter: DigitalWalletPainter(color: const Color(0xFF05CEA8)),
+                ),
+              ),
+            ),
+          ),
+
+          // Animated dots
+          AnimatedBuilder(
+            animation: _particleController,
+            builder: (context, child) {
+              return CustomPaint(
+                size: const Size(130, 130),
+                painter: OrbitingDotsPainter(
+                  animation: _particleController.value,
+                  color: const Color(0xFF05CEA8),
+                ),
+              );
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildText() {
+  Widget _buildTitle() {
     return Column(
       children: [
         ShaderMask(
           shaderCallback: (bounds) {
-            return LinearGradient(
+            return const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [const Color(0xFF05CEA8), const Color(0xFF45AA96)],
+              colors: [Color(0xFF05CEA8), Color(0xFF45AA96)],
             ).createShader(bounds);
           },
           child: const Text(
             'WalletPro',
             style: TextStyle(
-              fontSize: 36,
+              fontSize: 38,
               fontWeight: FontWeight.bold,
               color: Colors.white,
-              letterSpacing: 1.5,
+              letterSpacing: 2.0,
             ),
           ),
         ),
 
         const SizedBox(height: 10),
 
-        Text(
-          'Tu dinero, tu control',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.white.withOpacity(0.7),
-            letterSpacing: 0.5,
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFF293431),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: const Color(0xFF05CEA8).withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          child: const Text(
+            'Finanzas Digitales Inteligentes',
+            style: TextStyle(
+              fontSize: 14,
+              color: Color(0xFF05CEA8),
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildLoadingIndicator() {
-    return SizedBox(
-      width: 40,
-      height: 40,
-      child: CustomPaint(
-        painter: LoadingIndicatorPainter(
-          animation: _textAnimationController.value,
-          color: const Color(0xFF05CEA8),
+  Widget _buildFeatures() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _buildFeatureItem(Icons.security, 'Seguridad'),
+        const SizedBox(width: 30),
+        _buildFeatureItem(Icons.speed, 'Rapidez'),
+        const SizedBox(width: 30),
+        _buildFeatureItem(Icons.trending_up, 'Crecimiento'),
+      ],
+    );
+  }
+
+  Widget _buildFeatureItem(IconData icon, String label) {
+    return Column(
+      children: [
+        Container(
+          width: 50,
+          height: 50,
+          decoration: BoxDecoration(
+            color: const Color(0xFF293431),
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF05CEA8).withOpacity(0.2),
+                blurRadius: 10,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+          child: Icon(icon, color: const Color(0xFF05CEA8), size: 24),
         ),
-      ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProgressIndicator() {
+    return Column(
+      children: [
+        SizedBox(
+          width: 200,
+          height: 4,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: LinearProgressIndicator(
+              backgroundColor: const Color(0xFF293431),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                Color(0xFF05CEA8),
+              ),
+              value: _mainController.value,
+            ),
+          ),
+        ),
+        const SizedBox(height: 15),
+        const Text(
+          'Cargando tu experiencia financiera',
+          style: TextStyle(
+            color: Colors.white70,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 }
 
-class FinancialGraphPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final width = size.width;
-    final height = size.height;
-
-    final paint =
-        Paint()
-          ..color = Colors.white
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 3.0
-          ..strokeCap = StrokeCap.round;
-
-    final path = Path();
-
-    path.moveTo(0, height * 0.7);
-    path.lineTo(width * 0.2, height * 0.5);
-    path.lineTo(width * 0.4, height * 0.8);
-    path.lineTo(width * 0.6, height * 0.2);
-    path.lineTo(width * 0.8, height * 0.4);
-    path.lineTo(width, height * 0.3);
-
-    canvas.drawPath(path, paint);
-
-    final circlePaint =
-        Paint()
-          ..color = Colors.white
-          ..style = PaintingStyle.fill;
-
-    canvas.drawCircle(Offset(width * 0.6, height * 0.2), 4, circlePaint);
-
-    final gridPaint =
-        Paint()
-          ..color = Colors.white.withOpacity(0.3)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.0;
-
-    for (int i = 1; i < 4; i++) {
-      final y = height * (i / 4);
-      canvas.drawLine(Offset(0, y), Offset(width, y), gridPaint);
-    }
-
-    for (int i = 1; i < 4; i++) {
-      final x = width * (i / 4);
-      canvas.drawLine(Offset(x, 0), Offset(x, height), gridPaint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    return false;
-  }
-}
-
-class WavePainter extends CustomPainter {
-  final double animation;
-  final Color color1;
-  final Color color2;
-  final Color accentColor;
-
-  WavePainter({
-    required this.animation,
-    required this.color1,
-    required this.color2,
-    required this.accentColor,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
-    final gradient = LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: [color1, color2],
-    );
-
-    final paint = Paint()..shader = gradient.createShader(rect);
-    canvas.drawRect(rect, paint);
-
-    final wavePaint =
-        Paint()
-          ..color = accentColor.withOpacity(0.1)
-          ..style = PaintingStyle.fill;
-
-    for (int i = 0; i < 3; i++) {
-      final path = Path();
-      final waveHeight = 100.0 - (i * 20.0);
-      final frequency = 0.015 - (i * 0.002);
-      final phase = animation * 2 * math.pi + (i * math.pi / 2);
-
-      path.moveTo(0, size.height);
-
-      for (double x = 0; x <= size.width; x++) {
-        final y =
-            size.height * 0.5 +
-            math.sin(x * frequency + phase) * waveHeight +
-            (i * 50.0);
-        path.lineTo(x, y);
-      }
-
-      path.lineTo(size.width, size.height);
-      path.lineTo(0, size.height);
-      path.close();
-
-      canvas.drawPath(path, wavePaint);
-    }
-
-    final accentPath = Path();
-    final accentPaint =
-        Paint()
-          ..color = accentColor.withOpacity(0.6)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.0;
-
-    accentPath.moveTo(0, size.height * 0.5);
-
-    for (double x = 0; x <= size.width; x++) {
-      final y =
-          size.height * 0.5 +
-          math.sin(x * 0.01 + animation * 2 * math.pi) * 50.0;
-      accentPath.lineTo(x, y);
-    }
-
-    canvas.drawPath(accentPath, accentPaint);
-  }
-
-  @override
-  bool shouldRepaint(WavePainter oldDelegate) {
-    return oldDelegate.animation != animation;
-  }
-}
-
-class CurrencyParticle {
-  double x;
-  double y;
-  double size;
-  double speed;
-  double angle;
-  String symbol;
-  double opacity;
-  double rotation = 0;
-  double rotationSpeed;
-
-  CurrencyParticle({
-    required this.x,
-    required this.y,
-    required this.size,
-    required this.speed,
-    required this.angle,
-    required this.symbol,
-    required this.opacity,
-    required this.rotationSpeed,
-  });
-
-  void update(double delta, Size size) {
-    x += math.cos(angle) * speed * delta * 60;
-    y += math.sin(angle) * speed * delta * 60;
-    rotation += rotationSpeed * delta * 60;
-
-    if (x < -size.width / 2) x = size.width / 2;
-    if (x > size.width / 2) x = -size.width / 2;
-    if (y < -size.height / 2) y = size.height / 2;
-    if (y > size.height / 2) y = -size.height / 2;
-  }
-}
-
-class ParticlesPainter extends CustomPainter {
-  final List<CurrencyParticle> particles;
+class WaveBackgroundPainter extends CustomPainter {
   final double animation;
   final Color primaryColor;
   final Color accentColor;
 
-  ParticlesPainter({
-    required this.particles,
+  WaveBackgroundPainter({
     required this.animation,
     required this.primaryColor,
     required this.accentColor,
@@ -581,42 +450,189 @@ class ParticlesPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.save();
-    canvas.translate(size.width / 2, size.height / 2);
+    final width = size.width;
+    final height = size.height;
 
-    for (var particle in particles) {
-      particle.update(0.016, size);
+    // Background gradient
+    final backgroundPaint =
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [primaryColor, const Color(0xFF151616)],
+          ).createShader(Rect.fromLTWH(0, 0, width, height));
 
-      final textPainter = TextPainter(
-        text: TextSpan(
-          text: particle.symbol,
-          style: TextStyle(
-            color: _getParticleColor(particle).withOpacity(particle.opacity),
-            fontSize: particle.size,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      );
+    canvas.drawRect(Rect.fromLTWH(0, 0, width, height), backgroundPaint);
 
-      textPainter.layout();
+    // Draw waves
+    final wavePaint =
+        Paint()
+          ..color = accentColor.withOpacity(0.1)
+          ..style = PaintingStyle.fill;
 
-      canvas.save();
-      canvas.translate(particle.x, particle.y);
-      canvas.rotate(particle.rotation);
-      textPainter.paint(
-        canvas,
-        Offset(-textPainter.width / 2, -textPainter.height / 2),
-      );
-      canvas.restore();
+    // Top wave
+    final topWavePath = Path();
+    topWavePath.moveTo(0, 0);
+    topWavePath.lineTo(0, height * 0.3);
+
+    for (double x = 0; x <= width; x += width / 10) {
+      final waveHeight = height * 0.05;
+      final y =
+          height * 0.3 +
+          math.sin((x / width * 2 * math.pi) + animation * 2 * math.pi) *
+              waveHeight;
+      topWavePath.lineTo(x, y);
     }
 
-    canvas.restore();
+    topWavePath.lineTo(width, height * 0.3);
+    topWavePath.lineTo(width, 0);
+    topWavePath.close();
+
+    canvas.drawPath(topWavePath, wavePaint);
+
+    // Bottom wave
+    final bottomWavePath = Path();
+    bottomWavePath.moveTo(0, height);
+    bottomWavePath.lineTo(0, height * 0.7);
+
+    for (double x = 0; x <= width; x += width / 10) {
+      final waveHeight = height * 0.05;
+      final y =
+          height * 0.7 +
+          math.sin(
+                (x / width * 2 * math.pi) + animation * 2 * math.pi + math.pi,
+              ) *
+              waveHeight;
+      bottomWavePath.lineTo(x, y);
+    }
+
+    bottomWavePath.lineTo(width, height * 0.7);
+    bottomWavePath.lineTo(width, height);
+    bottomWavePath.close();
+
+    canvas.drawPath(bottomWavePath, wavePaint);
+
+    // Draw grid lines
+    final gridPaint =
+        Paint()
+          ..color = accentColor.withOpacity(0.05)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.0;
+
+    // Horizontal grid lines
+    for (int i = 0; i < 10; i++) {
+      final y = i * height / 10;
+      canvas.drawLine(Offset(0, y), Offset(width, y), gridPaint);
+    }
+
+    // Vertical grid lines
+    for (int i = 0; i < 10; i++) {
+      final x = i * width / 10;
+      canvas.drawLine(Offset(x, 0), Offset(x, height), gridPaint);
+    }
+
+    // Draw data points
+    final dotPaint =
+        Paint()
+          ..color = accentColor.withOpacity(0.2)
+          ..style = PaintingStyle.fill;
+
+    final random = math.Random(42);
+    for (int i = 0; i < 40; i++) {
+      final x = random.nextDouble() * width;
+      final y = random.nextDouble() * height;
+      final radius = 1.0 + random.nextDouble() * 1.5;
+
+      canvas.drawCircle(Offset(x, y), radius, dotPaint);
+    }
   }
 
-  Color _getParticleColor(CurrencyParticle particle) {
-    final t = (math.sin(animation * 2 * math.pi + particle.x * 0.01) + 1) / 2;
-    return Color.lerp(primaryColor, accentColor, t)!;
+  @override
+  bool shouldRepaint(WaveBackgroundPainter oldDelegate) {
+    return oldDelegate.animation != animation;
+  }
+}
+
+class ParticlesPainter extends CustomPainter {
+  final double animation;
+  final Color color;
+  final int particleCount = 20;
+
+  ParticlesPainter({required this.animation, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final width = size.width;
+    final height = size.height;
+    final random = math.Random(42);
+
+    for (int i = 0; i < particleCount; i++) {
+      final seed = i * 1000;
+      final particleRandom = math.Random(seed);
+
+      final baseX = particleRandom.nextDouble() * width;
+      final baseY = particleRandom.nextDouble() * height;
+
+      final amplitude = 20.0 + particleRandom.nextDouble() * 30.0;
+      final period = 3.0 + particleRandom.nextDouble() * 5.0;
+      final phase = particleRandom.nextDouble() * 2 * math.pi;
+
+      final x =
+          baseX +
+          math.sin(animation * 2 * math.pi / period + phase) * amplitude;
+      final y =
+          baseY +
+          math.cos(animation * 2 * math.pi / period + phase) * amplitude;
+
+      final size = 1.0 + particleRandom.nextDouble() * 2.0;
+      final opacity =
+          0.1 + 0.2 * math.cos(math.sin(animation * 2 * math.pi + i));
+
+      final particlePaint =
+          Paint()
+            ..color = color.withOpacity(opacity)
+            ..style = PaintingStyle.fill;
+
+      canvas.drawCircle(Offset(x, y), size, particlePaint);
+
+      // Draw connecting lines between some particles
+      if (i > 0 && i % 3 == 0) {
+        final prevSeed = (i - 1) * 1000;
+        final prevRandom = math.Random(prevSeed);
+
+        final prevBaseX = prevRandom.nextDouble() * width;
+        final prevBaseY = prevRandom.nextDouble() * height;
+
+        final prevAmplitude = 20.0 + prevRandom.nextDouble() * 30.0;
+        final prevPeriod = 3.0 + prevRandom.nextDouble() * 5.0;
+        final prevPhase = prevRandom.nextDouble() * 2 * math.pi;
+
+        final prevX =
+            prevBaseX +
+            math.sin(animation * 2 * math.pi / prevPeriod + prevPhase) *
+                prevAmplitude;
+        final prevY =
+            prevBaseY +
+            math.cos(animation * 2 * math.pi / prevPeriod + prevPhase) *
+                prevAmplitude;
+
+        final distance = math.sqrt(
+          math.pow(x - prevX, 2) + math.pow(y - prevY, 2),
+        );
+
+        if (distance < 100) {
+          final linePaint =
+              Paint()
+                ..color = color.withOpacity(
+                  opacity * 0.3 * (1 - distance / 100),
+                )
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = 0.5;
+
+          canvas.drawLine(Offset(x, y), Offset(prevX, prevY), linePaint);
+        }
+      }
+    }
   }
 
   @override
@@ -625,111 +641,125 @@ class ParticlesPainter extends CustomPainter {
   }
 }
 
-class NetworkLinesPainter extends CustomPainter {
+class DigitalWalletPainter extends CustomPainter {
   final Color color;
-  final int numPoints = 20;
-  final int numConnections = 40;
 
-  NetworkLinesPainter({required this.color});
+  DigitalWalletPainter({required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final random = math.Random(42);
-    final points = <Offset>[];
-
-    for (int i = 0; i < numPoints; i++) {
-      points.add(
-        Offset(
-          random.nextDouble() * size.width,
-          random.nextDouble() * size.height,
-        ),
-      );
-    }
+    final width = size.width;
+    final height = size.height;
 
     final paint =
         Paint()
           ..color = color
-          ..strokeWidth = 1.0
-          ..style = PaintingStyle.stroke;
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.5
+          ..strokeCap = StrokeCap.round;
 
-    for (int i = 0; i < numConnections; i++) {
-      final p1 = points[random.nextInt(points.length)];
-      final p2 = points[random.nextInt(points.length)];
-
-      if ((p1 - p2).distance < size.width * 0.3) {
-        canvas.drawLine(p1, p2, paint);
-      }
-    }
-
-    final pointPaint =
+    final fillPaint =
         Paint()
-          ..color = color
+          ..shader = LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [color, color.withOpacity(0.7)],
+          ).createShader(Rect.fromLTWH(0, 0, width, height))
           ..style = PaintingStyle.fill;
 
-    for (var point in points) {
-      canvas.drawCircle(point, 2.0, pointPaint);
-    }
+    // Draw digital wallet icon
+    final walletPath = Path();
+
+    // Main wallet body
+    final rect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(width * 0.15, height * 0.25, width * 0.7, height * 0.5),
+      Radius.circular(width * 0.05),
+    );
+
+    // Card inside wallet
+    final cardRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(width * 0.25, height * 0.35, width * 0.5, height * 0.25),
+      Radius.circular(width * 0.03),
+    );
+
+    // Draw wallet
+    canvas.drawRRect(rect, paint);
+
+    // Draw card
+    canvas.drawRRect(cardRect, fillPaint);
+
+    // Draw digital elements
+    final dotSize = width * 0.03;
+
+    // Digital dots on card
+    canvas.drawCircle(Offset(width * 0.35, height * 0.47), dotSize, paint);
+
+    canvas.drawCircle(Offset(width * 0.45, height * 0.47), dotSize, paint);
+
+    canvas.drawCircle(Offset(width * 0.55, height * 0.47), dotSize, paint);
+
+    canvas.drawCircle(Offset(width * 0.65, height * 0.47), dotSize, paint);
+
+    // Digital signal
+    final signalPath = Path();
+    signalPath.moveTo(width * 0.3, height * 0.65);
+    signalPath.lineTo(width * 0.4, height * 0.65);
+    signalPath.moveTo(width * 0.45, height * 0.65);
+    signalPath.lineTo(width * 0.7, height * 0.65);
+
+    canvas.drawPath(signalPath, paint);
+
+    // Digital arrow (growth)
+    final arrowPath = Path();
+    arrowPath.moveTo(width * 0.7, height * 0.3);
+    arrowPath.lineTo(width * 0.7, height * 0.2);
+    arrowPath.lineTo(width * 0.8, height * 0.2);
+
+    canvas.drawPath(arrowPath, paint);
   }
 
   @override
-  bool shouldRepaint(NetworkLinesPainter oldDelegate) {
+  bool shouldRepaint(DigitalWalletPainter oldDelegate) {
     return false;
   }
 }
 
-class LoadingIndicatorPainter extends CustomPainter {
+class OrbitingDotsPainter extends CustomPainter {
   final double animation;
   final Color color;
 
-  LoadingIndicatorPainter({required this.animation, required this.color});
+  OrbitingDotsPainter({required this.animation, required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
+    final width = size.width;
+    final height = size.height;
+    final center = Offset(width / 2, height / 2);
+    final radius = width / 2;
 
-    final bgPaint =
-        Paint()
-          ..color = color.withOpacity(0.2)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 3.0;
-
-    canvas.drawCircle(center, radius, bgPaint);
-
-    final progressPaint =
-        Paint()
-          ..color = color
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 3.0
-          ..strokeCap = StrokeCap.round;
-
-    final progressRect = Rect.fromCircle(center: center, radius: radius);
-    final startAngle = -math.pi / 2;
-    final sweepAngle = 2 * math.pi * animation;
-
-    canvas.drawArc(progressRect, startAngle, sweepAngle, false, progressPaint);
-
-    final numDots = 8;
+    final dotCount = 8;
     final dotPaint =
         Paint()
           ..color = color
           ..style = PaintingStyle.fill;
 
-    for (int i = 0; i < numDots; i++) {
-      final angle = 2 * math.pi * i / numDots - math.pi / 2;
-      final dotRadius =
-          2.0 + (i == (animation * numDots).floor() % numDots ? 2.0 : 0.0);
-      final dotCenter = Offset(
-        center.dx + radius * math.cos(angle),
-        center.dy + radius * math.sin(angle),
-      );
+    for (int i = 0; i < dotCount; i++) {
+      final angle = 2 * math.pi * i / dotCount + animation * 2 * math.pi;
+      final dotRadius = 3.0;
+      final distance = radius - 5;
 
-      canvas.drawCircle(dotCenter, dotRadius, dotPaint);
+      final x = center.dx + math.cos(angle) * distance;
+      final y = center.dy + math.sin(angle) * distance;
+
+      final opacity = 0.3 + 0.7 * ((i / dotCount + animation) % 1.0);
+      dotPaint.color = color.withOpacity(opacity);
+
+      canvas.drawCircle(Offset(x, y), dotRadius, dotPaint);
     }
   }
 
   @override
-  bool shouldRepaint(LoadingIndicatorPainter oldDelegate) {
+  bool shouldRepaint(OrbitingDotsPainter oldDelegate) {
     return oldDelegate.animation != animation;
   }
 }

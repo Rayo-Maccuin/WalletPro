@@ -4,10 +4,13 @@ import 'package:testapp/presentation/formulas/amortizacion_screen.dart';
 import 'package:testapp/presentation/formulas/simple_interest_screen.dart';
 import 'package:testapp/presentation/formulas/compound_interest.dart';
 import 'package:testapp/presentation/formulas/annuity_screen.dart';
+import 'package:testapp/presentation/screens/home/pagar_screen.dart';
 import 'package:testapp/presentation/screens/loan/loan_card_widget.dart';
 import 'package:testapp/presentation/screens/home/settings_screen.dart';
 import 'package:testapp/presentation/screens/home/loan_details_screen.dart';
 import 'package:testapp/presentation/screens/home/loan_request_screen.dart';
+import 'package:testapp/presentation/screens/home/consignar_screen.dart';
+import 'package:testapp/presentation/screens/home/retirar_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -511,7 +514,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Expanded(
                                   child: OutlinedButton(
                                     onPressed: () {
-                                      // Navegar a la pantalla de configuraciones
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
@@ -552,7 +554,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
                       const SizedBox(height: 25),
 
-                      // Transactions Section
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
@@ -585,16 +586,44 @@ class _HomeScreenState extends State<HomeScreen> {
                                   icon: Icons.send,
                                   label: 'Consignar',
                                   color: const Color(0xFF05CEA8),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (context) =>
+                                                const ConsignarScreen(),
+                                      ),
+                                    );
+                                  },
                                 ),
                                 _buildTransactionButton(
                                   icon: Icons.credit_card,
                                   label: 'Pagar',
                                   color: const Color(0xFF45AA96),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (context) => const PagarScreen(),
+                                      ),
+                                    );
+                                  },
                                 ),
                                 _buildTransactionButton(
                                   icon: Icons.attach_money,
                                   label: 'Retirar',
                                   color: const Color(0xFF293431),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (context) => const RetirarScreen(),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ],
                             ),
@@ -627,7 +656,6 @@ class _HomeScreenState extends State<HomeScreen> {
               _selectedIndex = index;
             });
 
-            // Mostrar el menú de opciones financieras cuando se presiona "Nuevo"
             if (index == 1) {
               _showFinancialOptionsMenu(context);
             }
@@ -653,6 +681,7 @@ class _HomeScreenState extends State<HomeScreen> {
     required IconData icon,
     required String label,
     required Color color,
+    required VoidCallback onPressed,
   }) {
     return Column(
       children: [
@@ -667,9 +696,7 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(icon),
             color: color,
             iconSize: 30,
-            onPressed: () {
-              // Manejar la acción del botón
-            },
+            onPressed: onPressed,
           ),
         ),
         const SizedBox(height: 8),

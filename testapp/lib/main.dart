@@ -4,6 +4,7 @@ import 'package:simple_animations/simple_animations.dart';
 import 'presentation/screens/home/home_screen.dart';
 import 'presentation/screens/login/registrer_Screen.dart';
 import 'presentation/screens/login/forgot_password_screen.dart';
+import 'presentation/screens/splash/splash_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -27,7 +28,9 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const LoginScreen(), // Cargamos la pantalla de Login
+      home: SplashScreen(
+        nextScreen: const LoginScreen(),
+      ), // Start with splash screen
       routes: {
         '/home': (context) => const HomeScreen(),
         '/register': (context) => const RegisterScreen(),
