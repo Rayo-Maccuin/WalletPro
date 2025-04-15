@@ -22,7 +22,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
-  // Método para mostrar el menú de opciones financieras
   void _showFinancialOptionsMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -47,7 +46,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             child: Column(
               children: [
-                // Indicador de arrastre
                 Container(
                   margin: const EdgeInsets.only(top: 10),
                   width: 50,
@@ -58,7 +56,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-                // Título
                 Padding(
                   padding: const EdgeInsets.all(20),
                   child: Text(
@@ -71,7 +68,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-                // Lista de opciones
                 Expanded(
                   child: ListView(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -99,7 +95,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             'Calcula el interés que se suma al capital',
                         onTap: () {
                           Navigator.pop(context);
-                          // Navegar a la calculadora de interés compuesto
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -115,7 +110,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         description: 'Calcula series de pagos con incrementos',
                         onTap: () {
                           Navigator.pop(context);
-                          // Navegar a la calculadora de gradiente
                         },
                       ),
                       _buildFinancialOption(
@@ -147,7 +141,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         description: 'Calcula valores ajustados por inflación',
                         onTap: () {
                           Navigator.pop(context);
-                          // Navegar a la calculadora de UVR
                         },
                       ),
                       _buildFinancialOption(
@@ -156,7 +149,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         description: 'Compara diferentes opciones de inversión',
                         onTap: () {
                           Navigator.pop(context);
-                          // Navegar a la calculadora de alternativas
                         },
                       ),
                       _buildFinancialOption(
@@ -165,7 +157,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         description: 'Calcula el valor y rendimiento de bonos',
                         onTap: () {
                           Navigator.pop(context);
-                          // Navegar a la calculadora de bonos
                         },
                       ),
                       _buildFinancialOption(
@@ -175,7 +166,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             'Calcula el impacto de la inflación en el dinero',
                         onTap: () {
                           Navigator.pop(context);
-                          // Navegar a la calculadora de inflación
                         },
                       ),
                       _buildFinancialOption(
@@ -190,7 +180,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               builder: (context) => const AnnuityScreen(),
                             ),
                           );
-                          // Navegar a la calculadora de anualidades
                         },
                       ),
                     ],
@@ -202,7 +191,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Widget para cada opción financiera
   Widget _buildFinancialOption({
     required IconData icon,
     required String title,
@@ -264,7 +252,6 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header
             Padding(
               padding: const EdgeInsets.all(20.0),
               child: Row(
@@ -312,7 +299,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     icon: const Icon(Icons.settings),
                     color: const Color(0xFF293431),
                     onPressed: () {
-                      // Navegar a la pantalla de configuraciones
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -331,7 +317,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: const EdgeInsets.all(20.0),
                   child: Column(
                     children: [
-                      // Balance Card
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(20),
@@ -395,9 +380,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 IconButton(
                                   icon: const Icon(Icons.refresh),
                                   color: Colors.white,
-                                  onPressed: () {
-                                    // Actualizar balance
-                                  },
+                                  onPressed: () {},
                                 ),
                               ],
                             ),
@@ -442,7 +425,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
                       const SizedBox(height: 25),
 
-                      // Loan Request Section
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
@@ -481,7 +463,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Expanded(
                                   child: ElevatedButton(
                                     onPressed: () {
-                                      // Navegar a la pantalla de configuraciones
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(

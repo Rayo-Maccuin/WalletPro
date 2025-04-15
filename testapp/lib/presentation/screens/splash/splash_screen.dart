@@ -18,7 +18,6 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _scaleAnimation;
   late Animation<double> _pathAnimation;
 
-  // Definición de la nueva paleta de colores
   final Color backgroundColor = const Color(0xFF151616);
   final Color darkGreen = const Color(0xFF293431);
   final Color mediumTurquoise = const Color(0xFF45AA96);
@@ -58,7 +57,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    Timer(const Duration(milliseconds: 3000), () {
+    Timer(const Duration(milliseconds: 5000), () {
       if (mounted) {
         setState(() {
           showSplash = false;
